@@ -62,7 +62,7 @@ export function AIChat() {
     updateSession,
   } = useChatSessions()
 
-  const { messages, setMessages, model, setModel, input, setInput, isLoading, error, send, clear } = useAIChat({
+  const { messages, setMessages, model, setModel, input, setInput, isLoading, error, setError, send, clear } = useAIChat({
     sessionId: currentSessionId,
     onSessionCreated: setCurrentSessionId,
   })
