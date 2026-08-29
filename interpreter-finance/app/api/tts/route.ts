@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     form.append('language', language)
     form.append('voice', voiceName)
     form.append('encoding', 'LINEAR_PCM')
-    form.append('sample_rate_hz', '44100')
+    form.append('sample_rate_hz', '22050')
 
     const response = await fetch(TTS_PROVIDER.url, {
       method: 'POST',
