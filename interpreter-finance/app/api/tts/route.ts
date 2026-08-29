@@ -5,11 +5,33 @@ type TTSLanguage = 'es-US' | 'en-US'
 type TTSVoice = 'Diego' | 'Isabela'
 type TTSEmotion = 'default' | 'neutral' | 'calm' | 'happy' | 'angry' | 'pleasantSurprised'
 
+// Expande abreviaturas para que el TTS las lea completas (p.ej. "350 min" -> "350 minutos").
+function normalizeForTTS(input: string, language: TTSLanguage): string {
+  const rules: Record<TTSLanguage, [RegExp, string][]> = {
+    'es-US': [
+      [/\bmin\b/gi, 'minutos'],
+      [/\bseg\b/gi, 'segundos'],
+      [/\bh\b/gi, 'horas'],
+      [/\bd\b/gi, 'días'],
+      [/\bkm\b/gi, 'kilómetros'],
+    ],
+    'en-US': [
+      [/\bmin\b/gi, 'minutes'],
+      [/\bsec\b/gi, 'seconds'],
+      [/\bh\b/gi, 'hours'],
+      [/\bd\b/gi, 'days'],
+      [/\bkm\b/gi, 'kilometers'],
+    ],
+  }
+  return rules[language].reduce((acc, [re, repl]) => acc.replace(re, repl), input)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const text = String(body.text ?? '').trim()
     const language: TTSLanguage = body.language === 'en-US' ? 'en-US' : 'es-US'
+    const raw = String(body.text ?? '').trim()
+    const text = normalizeForTTS(raw, language)
     const voice: TTSVoice = body.voice === 'Isabela' ? 'Isabela' : 'Diego'
     const emotion: TTSEmotion = body.emotion ?? 'default'
 
