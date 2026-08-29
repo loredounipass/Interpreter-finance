@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   ArrowUpRight, BarChart3, CalendarDays, Check, ChevronDown,
   Clock3, Flame, LayoutDashboard, LogOut, Menu, Plus, Settings2,
-  Target, X,
+  Target, X, BadgeDollarSign,
 } from 'lucide-react'
 import { ProgressChart } from './progress-chart'
 import { useFinance } from '@/hooks/use-finance'
@@ -181,13 +181,15 @@ export function GoalCard() {
 }
 
 export function GoalSettings() {
-  const { goal: hookGoal, workHours: hookWorkHours, saveGoal } = useFinance()
+  const { goal: hookGoal, workHours: hookWorkHours, ratePerMinute: hookRatePerMinute, saveGoal } = useFinance()
   const [goal, setGoal] = useState(hookGoal)
   const [workHours, setWorkHoursLocal] = useState(hookWorkHours)
+  const [ratePerMinute, setRatePerMinute] = useState(hookRatePerMinute)
 
   // Sync local state when hook loads data from Supabase
   useEffect(() => { setGoal(hookGoal) }, [hookGoal])
   useEffect(() => { setWorkHoursLocal(hookWorkHours) }, [hookWorkHours])
+  useEffect(() => { setRatePerMinute(hookRatePerMinute) }, [hookRatePerMinute])
 
   const minutesPerHour = getMinutesPerHour(goal, workHours)
   const wholeMinutesPerHour = getWholeMinutesPerHour(goal, workHours)
@@ -212,6 +214,13 @@ export function GoalSettings() {
             <span className="text-xs text-muted-foreground">hours</span>
           </div>
         </label>
+        <label className="flex flex-col gap-2 sm:col-span-2">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rate per minute ($)</span>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground pl-1">$</span>
+            <input type="number" min="0.01" step="0.01" value={ratePerMinute} onChange={(e) => setRatePerMinute(Math.max(0, Number(e.target.value) || 0))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+          </div>
+        </label>
       </div>
       <div className="mt-5 rounded-xl border border-primary/20 bg-primary/10 p-4">
         <p className="text-xs text-muted-foreground">Required pace per hour</p>
@@ -223,7 +232,7 @@ export function GoalSettings() {
           For {goal} minutes across {workHours} hours, plan about <span className="font-semibold text-foreground">{wholeMinutesPerHour} minutes every hour</span>.
         </p>
       </div>
-      <button onClick={() => saveGoal(goal, workHours)} className="mt-5 w-full rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
+      <button onClick={() => saveGoal(goal, workHours, ratePerMinute)} className="mt-5 w-full rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
     </Glass>
   )
 }
@@ -290,12 +299,13 @@ export function MonthlyChart() {
 }
 
 function Operations() {
-  const { currentMinutes, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta } = useFinance()
+  const { currentMinutes, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta, todayEarnings, monthEarnings } = useFinance()
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   return (
     <>
-      <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+      <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
         <StatCard label="Minutes logged today" value={`${Number(currentMinutes.toFixed(2))}m`} note={goal > 0 ? (goal - currentMinutes > 0 ? `${Number((goal - currentMinutes).toFixed(2))}m left` : 'Completed') : 'No goal set'} icon={Clock3} />
+        <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note={`$${monthEarnings.toFixed(2)} this month`} icon={BadgeDollarSign} />
         <StatCard label="Monthly total" value={formatMinutes(monthTotal)} note={`${weekDelta} vs last month`} icon={Target} />
         <StatCard label="Goal completion" value={`${goalHitRate}%`} note={`${completedDays} of ${daysInMonth} days`} icon={Check} />
         <StatCard label="Current streak" value={`${summary.streak}d`} note="Keep it going!" icon={Flame} />

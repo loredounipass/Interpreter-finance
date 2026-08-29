@@ -9,6 +9,7 @@ export function useFinance() {
   const [logs, setLogs] = useState<DailyLog[]>([])
   const [goal, setGoal] = useState(goalMinutes)
   const [workHours, setWorkHours] = useState(defaultWorkHours)
+  const [ratePerMinute, setRatePerMinute] = useState(0.13)
   const [period, setPeriod] = useState<'day' | 'month' | 'year'>('month')
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -35,7 +36,7 @@ export function useFinance() {
 
         const { data: goalData, error: goalError } = await supabase
           .from('goals')
-          .select('id, daily_minutes, work_hours')
+          .select('id, daily_minutes, work_hours, rate_per_minute')
           .eq('user_id', session.user.id)
           .eq('is_active', true)
           .single()
@@ -44,6 +45,7 @@ export function useFinance() {
         if (goalData) {
           setGoal(goalData.daily_minutes)
           if (goalData.work_hours) setWorkHours(goalData.work_hours)
+          if (goalData.rate_per_minute != null) setRatePerMinute(goalData.rate_per_minute)
         }
       } catch {
         // ignore
@@ -86,6 +88,9 @@ export function useFinance() {
   const weekDelta = useMemo(() => getWeekDelta(monthTotal, prevMonthTotal), [monthTotal, prevMonthTotal])
 
   const progress = useMemo(() => getProgress(currentMinutes, goal), [currentMinutes, goal])
+
+  const todayEarnings = useMemo(() => Number((currentMinutes * ratePerMinute).toFixed(2)), [currentMinutes, ratePerMinute])
+  const monthEarnings = useMemo(() => Number((monthTotal * ratePerMinute).toFixed(2)), [monthTotal, ratePerMinute])
 
   const persistMinutes = useCallback(async (newTotal: number) => {
     const minutesToSave = Number(newTotal.toFixed(2))
@@ -133,13 +138,14 @@ export function useFinance() {
     await persistMinutes(currentMinutes)
   }, [currentMinutes, persistMinutes])
 
-  const saveGoal = useCallback(async (value: number, hours?: number) => {
+  const saveGoal = useCallback(async (value: number, hours?: number, rate?: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
 
       const goalToSave = Number(value.toFixed(2))
       const hoursToSave = hours ?? workHours
+      const rateToSave = rate ?? ratePerMinute
 
       const { data: existingGoal } = await supabase
         .from('goals')
@@ -151,22 +157,23 @@ export function useFinance() {
       if (existingGoal) {
         const { error } = await supabase
           .from('goals')
-          .update({ daily_minutes: goalToSave, work_hours: hoursToSave, updated_at: new Date().toISOString() })
+          .update({ daily_minutes: goalToSave, work_hours: hoursToSave, rate_per_minute: rateToSave, updated_at: new Date().toISOString() })
           .eq('id', existingGoal.id)
         if (error) throw error
       } else {
         const { error } = await supabase
           .from('goals')
-          .insert([{ user_id: session.user.id, daily_minutes: goalToSave, work_hours: hoursToSave, starts_on: localToday(), is_active: true }])
+          .insert([{ user_id: session.user.id, daily_minutes: goalToSave, work_hours: hoursToSave, rate_per_minute: rateToSave, starts_on: localToday(), is_active: true }])
         if (error) throw error
       }
 
       setGoal(goalToSave)
       setWorkHours(hoursToSave)
+      setRatePerMinute(rateToSave)
     } catch (e: any) {
       alert('Save goal error: ' + (e?.message || String(e)))
     }
-  }, [workHours])
+  }, [workHours, ratePerMinute])
 
   const deleteEntry = useCallback(async (id: string) => {
     try {
@@ -204,8 +211,9 @@ export function useFinance() {
   const monthTitle = useMemo(() => getMonthTitle(), [])
 
   return {
-    currentMinutes, minutes: currentMinutes, goal, workHours, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
+    currentMinutes, minutes: currentMinutes, goal, workHours, ratePerMinute, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
     monthTotal, monthAverage, goalHitRate, goalProgress, completedDays, summary, weeklyData: periodData, chartData, calendarDays,
     recentEntries, summaryMessage, weekDelta, greeting, monthTitle, deleteEntry, addEntry, logs,
+    todayEarnings, monthEarnings,
   }
 }
