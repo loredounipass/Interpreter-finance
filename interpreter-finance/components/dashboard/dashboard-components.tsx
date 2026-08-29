@@ -114,7 +114,7 @@ export function StatCard({ label, value, note, icon: Icon, large = false }: { la
         <p className={labelSize}>{label}</p>
       </div>
       <p className={valueSize} style={{ marginTop: large ? '0.5rem' : '0.25rem' }}>{value}</p>
-      <p className={noteSize} style={{ marginTop: large ? '0.25rem' : '0.125rem' }}>{note}</p>
+      {note && <p className={noteSize} style={{ marginTop: large ? '0.25rem' : '0.125rem' }}>{note}</p>}
     </Glass>
   )
 }
@@ -317,10 +317,10 @@ function Operations() {
 }
 
 function DailyLog() {
-  const { todayEarnings, monthEarnings } = useFinance()
+  const { todayEarnings } = useFinance()
   return (
     <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-      <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note={`$${monthEarnings.toFixed(2)} this month`} icon={BadgeDollarSign} large />
+      <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note="" icon={BadgeDollarSign} large />
       <GoalCard /><ActivityList /><CalendarCard />
     </div>
   )
