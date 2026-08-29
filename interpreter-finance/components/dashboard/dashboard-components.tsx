@@ -33,7 +33,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
     ['Goals', Target],
     ['Earnings', Wallet],
     ['Insights', BarChart3],
-    ['AI chat', MessageSquare],
+    ['interpreter AI', MessageSquare],
   ]
   return (
     <aside className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 p-5 backdrop-blur-xl transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>

@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AI_MODELS } from '@/utils/ai-models'
 import { PROVIDERS, getProviderApiKey } from '@/utils/ai-providers'
 import { buildSystemPrompt, type ChatContext } from '@/utils/ai-system-prompt'
-import { supabaseServer, getUserIdFromRequest } from '@/lib/supabase-server'
+import { getUserIdFromRequest } from '@/lib/supabase-server'
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(request)
+    const { userId, supabase } = await getUserIdFromRequest(request)
     if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
 
     const body = await request.json()
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Resolver la sesión: si se envió un id válido la usamos, si no creamos una nueva.
     if (sessionId) {
-      const { data: sess } = await supabaseServer
+      const { data: sess } = await supabase
         .from('chat_sessions')
         .select('id, user_id')
         .eq('id', sessionId)
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!sessionId) {
       const firstUser = [...messages].reverse().find((m) => m.role === 'user')
       const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
-      const { data: sess, error: sessErr } = await supabaseServer
+      const { data: sess, error: sessErr } = await supabase
         .from('chat_sessions')
         .insert([{ user_id: userId, title, model: modelKey }])
         .select('id')
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Posición base para los mensajes nuevos de esta ronda.
-    const { count } = await supabaseServer
+    const { count } = await supabase
       .from('chat_messages')
       .select('id', { count: 'exact', head: true })
       .eq('session_id', sessionId)
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Guardar el mensaje del usuario (el último del array).
     const userMsg = messages[messages.length - 1]
-    await supabaseServer.from('chat_messages').insert([
+    await supabase.from('chat_messages').insert([
       {
         session_id: sessionId,
         user_id: userId,
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
           // Persistir la respuesta del asistente y mantener la sesión al día.
           try {
             if (acc.trim()) {
-              await supabaseServer.from('chat_messages').insert([
+              await supabase.from('chat_messages').insert([
                 {
                   session_id: sessionId,
                   user_id: userId,
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
                 },
               ])
             }
-            await supabaseServer
+            await supabase
               .from('chat_sessions')
               .update({ model: modelKey, updated_at: new Date().toISOString() })
               .eq('id', sessionId)

@@ -90,5 +90,5 @@ export function useAIChat(opts?: UseAIChatOptions) {
     setError(null)
   }, [])
 
-  return { messages, setMessages, model, setModel, input, setInput, isLoading, error, send, clear }
+  return { messages, setMessages, model, setModel, input, setInput, isLoading, error, setError, send, clear }
 }

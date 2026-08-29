@@ -1,31 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseServer, getUserIdFromRequest } from '@/lib/supabase-server'
+import { getUserIdFromRequest } from '@/lib/supabase-server'
 
 async function ownSession(request: NextRequest, id: string) {
-  const userId = await getUserIdFromRequest(request)
+  const { userId, supabase } = await getUserIdFromRequest(request)
   if (!userId) {
-    return { userId: null, error: NextResponse.json({ error: 'No autenticado.' }, { status: 401 }) }
+    return { userId: null, supabase, error: NextResponse.json({ error: 'No autenticado.' }, { status: 401 }) }
   }
-  const { data, error } = await supabaseServer
+  const { data, error } = await supabase
     .from('chat_sessions')
     .select('user_id')
     .eq('id', id)
     .single()
   if (error || !data) {
-    return { userId, error: NextResponse.json({ error: 'Sesión no encontrada.' }, { status: 404 }) }
+    return { userId, supabase, error: NextResponse.json({ error: 'Sesión no encontrada.' }, { status: 404 }) }
   }
   if (data.user_id !== userId) {
-    return { userId, error: NextResponse.json({ error: 'No autorizado.' }, { status: 403 }) }
+    return { userId, supabase, error: NextResponse.json({ error: 'No autorizado.' }, { status: 403 }) }
   }
-  return { userId, error: null }
+  return { userId, supabase, error: null }
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { error } = await ownSession(request, id)
+  const { error, supabase } = await ownSession(request, id)
   if (error) return error
 
-  const { data, error: msgError } = await supabaseServer
+  const { data, error: msgError } = await supabase
     .from('chat_messages')
     .select('role, content')
     .eq('session_id', id)
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { error } = await ownSession(request, id)
+  const { error, supabase } = await ownSession(request, id)
   if (error) return error
 
   const body = await request.json().catch(() => ({}))
@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'Nada que actualizar.' }, { status: 400 })
   }
 
-  const { data, error: updError } = await supabaseServer
+  const { data, error: updError } = await supabase
     .from('chat_sessions')
     .update(updates)
     .eq('id', id)
@@ -62,10 +62,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { error } = await ownSession(request, id)
+  const { error, supabase } = await ownSession(request, id)
   if (error) return error
 
-  const { error: delError } = await supabaseServer.from('chat_sessions').delete().eq('id', id)
+  const { error: delError } = await supabase.from('chat_sessions').delete().eq('id', id)
   if (delError) return NextResponse.json({ error: delError.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

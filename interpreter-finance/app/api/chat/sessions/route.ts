@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseServer, getUserIdFromRequest } from '@/lib/supabase-server'
+import { getUserIdFromRequest } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request)
+  const { userId, supabase } = await getUserIdFromRequest(request)
   if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
 
-  const { data, error } = await supabaseServer
+  const { data, error } = await supabase
     .from('chat_sessions')
     .select('id, title, model, created_at, updated_at')
     .eq('user_id', userId)
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request)
+  const { userId, supabase } = await getUserIdFromRequest(request)
   if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
 
   const body = await request.json().catch(() => ({}))
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     typeof body.title === 'string' && body.title.trim() ? body.title.trim() : 'Nueva conversación'
   const model = typeof body.model === 'string' && body.model ? body.model : 'nvidia-nemotron'
 
-  const { data, error } = await supabaseServer
+  const { data, error } = await supabase
     .from('chat_sessions')
     .insert([{ user_id: userId, title, model }])
     .select('id, title, model, created_at, updated_at')

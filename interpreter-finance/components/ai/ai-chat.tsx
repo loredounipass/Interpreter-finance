@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Bot, Loader2, ArrowUp, Trash2, Mic, MicOff, Settings2, Waves, Plus, Menu, X } from 'lucide-react'
+import { Bot, Loader2, ArrowUp, Trash2, Mic, MicOff, Settings2, Waves, Plus, Menu, X, PanelLeftClose, PanelLeft } from 'lucide-react'
 import { useAIChat } from '@/hooks/use-ai-chat'
 import { useChatSessions } from '@/hooks/use-chat-sessions'
 import { AI_MODEL_LIST, AI_MODELS } from '@/utils/ai-models'
@@ -49,6 +49,7 @@ export function AIChat() {
   const spokenIdx = useRef(-1)
   const [draft, setDraft] = useState<TTSSettings>(tts.settings ?? DEFAULT_TTS_SETTINGS)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   const {
     sessions,
@@ -147,12 +148,13 @@ export function AIChat() {
   )
 
   const startNewChat = useCallback(async () => {
-    await createSession(model)
+    const session = await createSession(model)
+    if (!session) return
     setMessages([])
     setError(null)
     spokenIdx.current = -1
     setSidebarOpen(false)
-  }, [createSession, model, setMessages])
+  }, [createSession, model, setMessages, setError])
 
   const onDeleteSession = useCallback(
     async (id: string) => {
@@ -197,9 +199,9 @@ export function AIChat() {
     <section className="relative flex h-full min-h-0">
       {/* Sidebar de sesiones */}
       <aside
-        className={`absolute inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 backdrop-blur-xl transition-transform md:static md:translate-x-0 ${
+        className={`absolute inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 backdrop-blur-xl transition-[transform,width] md:static md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${collapsed ? 'md:hidden' : 'md:flex'}`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Chats</p>
@@ -259,16 +261,23 @@ export function AIChat() {
             <button
               onClick={() => setSidebarOpen(true)}
               aria-label="Abrir chats"
-              className="grid size-9 place-items-center rounded-xl border border-white/10 text-muted-foreground lg:hidden"
+              className="grid size-9 place-items-center rounded-xl border border-white/10 text-muted-foreground md:hidden"
             >
               <Menu className="size-5" />
+            </button>
+            <button
+              onClick={() => setCollapsed((c) => !c)}
+              aria-label={collapsed ? 'Mostrar chats' : 'Ocultar chats'}
+              className="hidden size-9 place-items-center rounded-xl border border-white/10 text-muted-foreground transition-colors hover:text-foreground md:grid"
+            >
+              {collapsed ? <PanelLeft className="size-5" /> : <PanelLeftClose className="size-5" />}
             </button>
             <div className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary">
               <Bot className="size-5" />
             </div>
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Assistant</p>
-              <h2 className="mt-1 text-lg font-semibold">AI chat</h2>
+              <h2 className="mt-1 text-lg font-semibold">interpreter AI</h2>
             </div>
           </div>
           <div className="flex items-center gap-2">
