@@ -40,10 +40,7 @@ export function useSpeechToText({
     }
   }
 
-  const scheduleRestart = useCallback((delay: number) => {
-    if (restartTimer.current) clearTimeout(restartTimer.current)
-    restartTimer.current = setTimeout(() => start(), delay)
-  }, [start])
+  const startRef = useRef<() => void>(() => {})
 
   const start = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -120,7 +117,14 @@ export function useSpeechToText({
       startingRef.current = false
       setListening(false)
     }
-  }, [lang, listening, scheduleRestart])
+  }, [lang, listening])
+
+  startRef.current = start
+
+  const scheduleRestart = useCallback((delay: number) => {
+    if (restartTimer.current) clearTimeout(restartTimer.current)
+    restartTimer.current = setTimeout(() => startRef.current(), delay)
+  }, [])
 
   const stop = useCallback((manual = false) => {
     clearSilence()
