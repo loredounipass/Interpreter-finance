@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   ArrowUpRight, BarChart3, CalendarDays, Check,
   Clock3, Flame, LayoutDashboard, LogOut, Menu, Plus, Settings2,
-  Target, X, BadgeDollarSign, Wallet, CalendarRange, Trophy,
+  Target, X, BadgeDollarSign, Wallet, CalendarRange, Trophy, MessageSquare,
 } from 'lucide-react'
+import { AIChat } from '@/components/ai/ai-chat'
 import { ProgressChart } from './progress-chart'
 import { useFinance } from '@/hooks/use-finance'
 import { useAuth } from '@/hooks/use-auth'
@@ -16,7 +17,7 @@ import {
 } from '@/lib/finance'
 import { formatMinutes, formatLongDate, computeEarnings } from '@/lib/finance'
 
-type View = 'Overview' | 'Daily log' | 'Goals' | 'Insights' | 'Earnings'
+type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat'
 
 function Glass({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <section className={`glass-panel ${className}`}>{children}</section>
@@ -32,6 +33,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
     ['Goals', Target],
     ['Earnings', Wallet],
     ['Insights', BarChart3],
+    ['AI chat', MessageSquare],
   ]
   return (
     <aside className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 p-5 backdrop-blur-xl transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -538,7 +540,7 @@ export function Dashboard() {
   
   useEffect(() => {
     const saved = localStorage.getItem('dashboard_view') as View
-    if (saved && ['Overview', 'Daily log', 'Goals', 'Insights', 'Earnings'].includes(saved)) {
+    if (saved && ['Overview', 'Daily log', 'Goals', 'Earnings', 'Insights', 'AI chat'].includes(saved)) {
       setActive(saved)
     }
   }, [])
@@ -548,7 +550,7 @@ export function Dashboard() {
     localStorage.setItem('dashboard_view', view)
   }
 
-  const content = active === 'Overview' ? <Operations /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : <Insights />
+  const content = active === 'Overview' ? <Operations /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : active === 'AI chat' ? <AIChat /> : <Insights />
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className="flex h-full">
