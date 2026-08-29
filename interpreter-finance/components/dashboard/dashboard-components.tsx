@@ -19,6 +19,15 @@ import { formatMinutes, formatLongDate, computeEarnings } from '@/lib/finance'
 
 type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat'
 
+const VIEW_LABELS: Record<View, string> = {
+  Overview: 'Overview',
+  'Daily log': 'Daily log',
+  Goals: 'Goals',
+  Earnings: 'Earnings',
+  Insights: 'Insights',
+  'AI chat': 'interpreter AI',
+}
+
 function Glass({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <section className={`glass-panel ${className}`}>{children}</section>
 }
@@ -27,13 +36,13 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export function Sidebar({ active, onNavigate, open, onClose }: { active: View; onNavigate: (view: View) => void; open: boolean; onClose: () => void }) {
-  const items: [View, React.ElementType][] = [
-    ['Overview', LayoutDashboard],
-    ['Daily log', Clock3],
-    ['Goals', Target],
-    ['Earnings', Wallet],
-    ['Insights', BarChart3],
-    ['interpreter AI', MessageSquare],
+  const items: { key: View; label: string; icon: React.ElementType }[] = [
+    { key: 'Overview', label: 'Overview', icon: LayoutDashboard },
+    { key: 'Daily log', label: 'Daily log', icon: Clock3 },
+    { key: 'Goals', label: 'Goals', icon: Target },
+    { key: 'Earnings', label: 'Earnings', icon: Wallet },
+    { key: 'Insights', label: 'Insights', icon: BarChart3 },
+    { key: 'AI chat', label: 'interpreter AI', icon: MessageSquare },
   ]
   return (
     <aside className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 p-5 backdrop-blur-xl transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -53,10 +62,10 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
         <div>
           <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
           <div className="flex flex-col gap-1">
-            {items.map(([label, Icon]) => (
-              <button key={label} onClick={() => { onNavigate(label); onClose() }} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${active === label ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'}`}>
-                <Icon className="size-4" />{label}
-                {active === label && <span className="ml-auto size-1.5 rounded-full bg-primary" />}
+            {items.map((item) => (
+              <button key={item.key} onClick={() => { onNavigate(item.key); onClose() }} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${active === item.key ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'}`}>
+                <item.icon className="size-4" />{item.label}
+                {active === item.key && <span className="ml-auto size-1.5 rounded-full bg-primary" />}
               </button>
             ))}
           </div>
@@ -92,7 +101,7 @@ export function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
       <div className="flex items-center gap-3">
         <button className="lg:hidden" onClick={onMenu} aria-label="Open menu"><Menu className="size-5" /></button>
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{view}</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{VIEW_LABELS[view]}</p>
           <h1 className="mt-1 text-lg font-semibold">{greeting}, {firstName}</h1>
         </div>
       </div>
@@ -563,7 +572,7 @@ export function Dashboard() {
                 <div>
                   <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   <h2 className="mt-2 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-                    {active === 'Overview' ? <>Your practice,<br className="sm:hidden" /> in perspective.</> : active}
+                    {active === 'Overview' ? <>Your practice,<br className="sm:hidden" /> in perspective.</> : VIEW_LABELS[active]}
                   </h2>
                 </div>
                 <button onClick={() => handleNavigate('Daily log')} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20">
