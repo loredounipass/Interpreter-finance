@@ -1,3 +1,14 @@
+-- Shared function: auto-updates the updated_at column on row changes.
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
 -- goals table
 
 create table if not exists public.goals (

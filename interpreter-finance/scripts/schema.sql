@@ -1,10 +1,12 @@
 -- Interpreter Finance schema
 -- User-owned goals and daily interpretation minute logs.
-
--- Shared function
-\i functions.sql
-
--- Tables
-\i 01_profiles.sql
-\i 02_goals.sql
-\i 03_daily_logs.sql
+--
+-- Each file below is self-contained: it creates the shared set_updated_at()
+-- function (idempotent) before its table, so files can be run in any order
+-- in the Supabase SQL Editor.
+--
+-- For psql, run them in order:
+--   \i functions.sql
+--   \i 01_profiles.sql
+--   \i 02_goals.sql
+--   \i 03_daily_logs.sql
