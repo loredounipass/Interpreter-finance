@@ -25,7 +25,8 @@ export function useSpeechToText({
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const restartTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const startingRef = useRef(false)
-  const finalRef = useRef('')
+  const pendingRef = useRef('')
+  const deliveredRef = useRef('')
   const sentRef = useRef(false)
   const onFinalRef = useRef(onFinal)
   onFinalRef.current = onFinal
@@ -52,7 +53,8 @@ export function useSpeechToText({
     if (blockRef.current) return
     // Evita arranques superpuestos (el SO a veces dispara onend/start seguidos).
     if (startingRef.current || listening) return
-    finalRef.current = ''
+    pendingRef.current = ''
+    deliveredRef.current = ''
     sentRef.current = false
     setTranscript('')
     armedRef.current = true
@@ -64,26 +66,27 @@ export function useSpeechToText({
 
     recognition.onresult = (event: { resultIndex: number; results: SpeechRecognitionResultLike[] }) => {
       let interim = ''
-      let finalChunk = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      let finals = ''
+      for (let i = 0; i < event.results.length; i++) {
         const res = event.results[i]
-        if (res.isFinal) finalChunk += res[0].transcript
+        if (res.isFinal) finals += res[0].transcript
         else interim += res[0].transcript
       }
-      if (finalChunk) {
-        finalRef.current += finalChunk + ' '
+      // Solo la parte nueva (aún no enviada) para evitar duplicados y re-envíos
+      // cuando el SO re-emite el resultado final (típico en móvil).
+      if (finals.length > deliveredRef.current.length) {
+        pendingRef.current = finals.slice(deliveredRef.current.length).trim()
         clearSilence()
         silenceTimer.current = setTimeout(() => {
-          const text = finalRef.current.trim()
-          recognition.stop()
-          if (text && !sentRef.current) {
+          if (pendingRef.current && !sentRef.current) {
             sentRef.current = true
-            onFinalRef.current?.(text)
+            deliveredRef.current = finals
+            onFinalRef.current?.(pendingRef.current)
+            pendingRef.current = ''
           }
-          finalRef.current = ''
         }, SILENCE_MS)
       }
-      setTranscript(finalRef.current + interim)
+      setTranscript(finals + interim)
     }
 
     recognition.onerror = (e: { error?: string }) => {
@@ -99,17 +102,14 @@ export function useSpeechToText({
       clearSilence()
       startingRef.current = false
       // En móvil el SO cierra el reconocimiento tras cada frase, antes de que
-      // venza el timer de silencio. Si aún no se envió el texto acumulado,
-      // lo enviamos aquí para que no se pierda (y no se "borre" del input).
-      if (!blockRef.current && !sentRef.current) {
-        const text = finalRef.current.trim()
-        if (text) {
-          sentRef.current = true
-          onFinalRef.current?.(text)
-        }
+      // venza el timer de silencio. Enviamos aquí el texto pendiente para que
+      // no se pierda (ni se duplique).
+      if (!blockRef.current && !sentRef.current && pendingRef.current) {
+        sentRef.current = true
+        deliveredRef.current = (deliveredRef.current + ' ' + pendingRef.current).trim()
+        onFinalRef.current?.(pendingRef.current)
+        pendingRef.current = ''
       }
-      finalRef.current = ''
-      sentRef.current = false
       // Dictado continuo: si sigue armado y no esta bloqueado, reiniciar.
       // (En iOS esto fallara por la politica de gesto y quedara apagado hasta
       // un nuevo toque; en Android/desktop se mantiene escuchando.)
