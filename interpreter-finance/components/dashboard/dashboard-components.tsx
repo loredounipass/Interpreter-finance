@@ -32,7 +32,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
     ['Insights', BarChart3],
   ]
   return (
-    <aside className={`fixed inset-y-0 left-0 z-30 w-64 border-r border-white/10 bg-sidebar/90 p-5 backdrop-blur-xl transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 p-5 backdrop-blur-xl transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="mb-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
@@ -45,7 +45,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
         </div>
         <button className="lg:hidden" onClick={onClose} aria-label="Close menu"><X className="size-4" /></button>
       </div>
-      <nav aria-label="Main navigation" className="flex flex-col gap-8">
+      <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-8">
         <div>
           <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
           <div className="flex flex-col gap-1">
@@ -57,7 +57,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
             ))}
           </div>
         </div>
-        <div>
+        <div className="mt-auto">
           <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Manage</p>
           <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-white/5"><Settings2 className="size-4" />Settings</button>
           <SignOutButton />
@@ -278,7 +278,7 @@ export function CalendarCard() {
 export function MonthlyChart() {
   const { goal, chartData } = useFinance()
   return (
-    <Glass className="h-fit self-start p-4">
+    <Glass className="h-fit p-4">
       <div>
         <Eyebrow>Progress over time</Eyebrow>
         <h2 className="mt-1 text-base font-semibold">Interpretation minutes</h2>
@@ -301,11 +301,15 @@ function Operations() {
         <StatCard label="Current streak" value={`${summary.streak}d`} note="Keep it going!" icon={Flame} />
       </div>
       <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.8fr)]">
-        <MonthlyChart />
-        <div className="flex flex-col gap-4"><GoalCard /><GoalSettings /></div>
-      </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.15fr]">
-        <ActivityList /><CalendarCard />
+        <div className="flex flex-col gap-4">
+          <MonthlyChart />
+          <ActivityList />
+        </div>
+        <div className="flex flex-col gap-4">
+          <GoalCard />
+          <GoalSettings />
+          <CalendarCard />
+        </div>
       </div>
     </>
   )
@@ -372,14 +376,27 @@ export function Dashboard() {
   const [active, setActive] = useState<View>('Overview')
   const [menuOpen, setMenuOpen] = useState(false)
   const { summaryMessage } = useFinance()
+  
+  useEffect(() => {
+    const saved = localStorage.getItem('dashboard_view') as View
+    if (saved && ['Overview', 'Daily log', 'Goals', 'Insights'].includes(saved)) {
+      setActive(saved)
+    }
+  }, [])
+
+  const handleNavigate = (view: View) => {
+    setActive(view)
+    localStorage.setItem('dashboard_view', view)
+  }
+
   const content = active === 'Overview' ? <Operations /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : <Insights />
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen">
-        <Sidebar active={active} onNavigate={setActive} open={menuOpen} onClose={() => setMenuOpen(false)} />
-        <div className="min-w-0 flex-1">
+    <div className="h-screen overflow-hidden bg-background text-foreground">
+      <div className="flex h-full">
+        <Sidebar active={active} onNavigate={handleNavigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
+        <div className="min-w-0 flex-1 flex flex-col h-full overflow-y-auto">
           <Header view={active} onMenu={() => setMenuOpen(true)} />
-          <main className="mx-auto max-w-[1280px] p-4 lg:p-7">
+          <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 lg:p-7">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
@@ -387,7 +404,7 @@ export function Dashboard() {
                   {active === 'Overview' ? <>Your practice,<br className="sm:hidden" /> in perspective.</> : active}
                 </h2>
               </div>
-              <button onClick={() => setActive('Daily log')} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20">
+              <button onClick={() => handleNavigate('Daily log')} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20">
                 <Plus className="size-4" />Log minutes
               </button>
             </div>
