@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TTS_PROVIDER, getProviderApiKey } from '@/utils/ai-providers'
+import { numbersToWordsEs } from '@/utils/number-to-words-es'
 
 type TTSLanguage = 'es-US' | 'en-US'
 type TTSVoice = 'Diego' | 'Isabela'
@@ -31,7 +32,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const language: TTSLanguage = body.language === 'en-US' ? 'en-US' : 'es-US'
     const raw = String(body.text ?? '').trim()
-    const text = normalizeForTTS(raw, language)
+    const normalized = normalizeForTTS(raw, language)
+    const text = language === 'es-US' ? numbersToWordsEs(normalized) : normalized
     const voice: TTSVoice = body.voice === 'Isabela' ? 'Isabela' : 'Diego'
     const emotion: TTSEmotion = body.emotion ?? 'default'
 

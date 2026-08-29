@@ -67,10 +67,11 @@ export function AIChat() {
 
   const handleFinal = useCallback(
     (text: string) => {
+      if (tts.speaking) return
       setInput(text)
       send(context, text)
     },
-    [context, send]
+    [context, send, tts.speaking]
   )
 
   const stt = useSpeechToText({ lang: tts.settings?.language ?? 'es-US', onFinal: handleFinal })
