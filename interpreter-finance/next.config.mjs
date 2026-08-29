@@ -16,7 +16,7 @@ async function getPWA() {
     register: true,
     skipWaiting: true,
     disable: process.env.NODE_ENV === 'development',
-    buildExcludes: [/middleware-manifest\.json$/],
+    buildExcludes: [/middleware-manifest\.json$/, /app-build-manifest\.json$/, /build-manifest\.json$/],
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
