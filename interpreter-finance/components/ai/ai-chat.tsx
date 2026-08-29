@@ -57,7 +57,7 @@ export function AIChat() {
             className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-primary/50"
           >
             {AI_MODEL_LIST.map((m) => (
-              <option key={m.id} value={m.id} className="bg-card text-foreground">
+              <option key={m.key} value={m.key} className="bg-card text-foreground">
                 {m.name}
               </option>
             ))}
