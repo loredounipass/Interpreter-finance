@@ -572,10 +572,12 @@ export function Dashboard() {
               </div>
             )}
             {content}
-            <footer className="mt-10 flex justify-between gap-2 border-t border-white/10 pt-5 text-[10px] uppercase tracking-wider text-muted-foreground">
-              <span>Interpreter Finance · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              <span>{summaryMessage}</span>
-            </footer>
+            {active !== 'AI chat' && (
+              <footer className="mt-10 flex justify-between gap-2 border-t border-white/10 pt-5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span>Interpreter Finance · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <span>{summaryMessage}</span>
+              </footer>
+            )}
           </main>
         </div>
       </div>
