@@ -15,46 +15,64 @@ export function useFinance() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentMinutes, setCurrentMinutes] = useState(0)
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user) { setIsLoading(false); return }
+  const fetchData = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { setIsLoading(false); return }
 
-        const { data: logsData, error: logsError } = await supabase
-          .from('daily_logs')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('logged_on', { ascending: false })
+      const { data: logsData, error: logsError } = await supabase
+        .from('daily_logs')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('logged_on', { ascending: false })
 
-        if (logsError) throw logsError
-        setLogs(logsData ?? [])
+      if (logsError) throw logsError
+      setLogs(logsData ?? [])
 
-        const today = localToday()
-        const todayLog = logsData?.find((l) => l.logged_on === today)
-        if (todayLog) setCurrentMinutes(todayLog.minutes)
+      const today = localToday()
+      const todayLog = logsData?.find((l) => l.logged_on === today)
+      if (todayLog) setCurrentMinutes(todayLog.minutes)
 
-        const { data: goalData, error: goalError } = await supabase
-          .from('goals')
-          .select('id, daily_minutes, work_hours, rate_per_minute')
-          .eq('user_id', session.user.id)
-          .eq('is_active', true)
-          .single()
+      const { data: goalData, error: goalError } = await supabase
+        .from('goals')
+        .select('id, daily_minutes, work_hours, rate_per_minute')
+        .eq('user_id', session.user.id)
+        .eq('is_active', true)
+        .single()
 
-        if (goalError && goalError.code !== 'PGRST116') throw goalError
-        if (goalData) {
-          setGoal(goalData.daily_minutes)
-          if (goalData.work_hours) setWorkHours(goalData.work_hours)
-          if (goalData.rate_per_minute != null) setRatePerMinute(goalData.rate_per_minute)
-        }
-      } catch {
-        // ignore
-      } finally {
-        setIsLoading(false)
+      if (goalError && goalError.code !== 'PGRST116') throw goalError
+      if (goalData) {
+        setGoal(goalData.daily_minutes)
+        if (goalData.work_hours) setWorkHours(goalData.work_hours)
+        if (goalData.rate_per_minute != null) setRatePerMinute(goalData.rate_per_minute)
       }
+    } catch {
+      // ignore
+    } finally {
+      setIsLoading(false)
     }
-    fetchData()
   }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime-finance')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_logs' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, fetchData)
+      .subscribe()
+
+    const poll = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchData()
+    }, 30000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(poll)
+    }
+  }, [fetchData])
 
   const today = localToday()
 
