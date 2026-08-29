@@ -24,6 +24,7 @@ export function useTTS() {
   const [enabled, setEnabled] = useState(false)
   const [settings, setSettings] = useState<TTSSettings | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export function useTTS() {
   const toggle = useCallback(() => {
     if (enabled) {
       setEnabled(false)
+      setSpeaking(false)
       audioRef.current?.pause()
       return
     }
@@ -79,7 +81,10 @@ export function useTTS() {
         audioRef.current?.pause()
         const audio = new Audio(url)
         audioRef.current = audio
-        audio.play().catch(() => {})
+        audio.onended = () => setSpeaking(false)
+        audio.onpause = () => setSpeaking(false)
+        setSpeaking(true)
+        audio.play().catch(() => setSpeaking(false))
       } catch {
         // ignore
       }
@@ -87,5 +92,5 @@ export function useTTS() {
     [enabled, settings]
   )
 
-  return { enabled, settings, dialogOpen, setDialogOpen, saveSettings, toggle, speak }
+  return { enabled, settings, dialogOpen, setDialogOpen, saveSettings, toggle, speak, speaking }
 }
