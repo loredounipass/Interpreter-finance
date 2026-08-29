@@ -125,7 +125,7 @@ export function useFinance() {
     setCurrentMinutes(minutesToSave)
     setIsSaving(true)
     try {
-      if (minutesToSave <= 0) return
+      if (minutesToSave < 0) return
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
 
