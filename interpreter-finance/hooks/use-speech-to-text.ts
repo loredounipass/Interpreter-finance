@@ -24,6 +24,7 @@ export function useSpeechToText({
   const recognitionRef = useRef<any>(null)
   const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const restartTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startingRef = useRef(false)
   const finalRef = useRef('')
   const onFinalRef = useRef(onFinal)
   onFinalRef.current = onFinal
@@ -39,6 +40,11 @@ export function useSpeechToText({
     }
   }
 
+  const scheduleRestart = useCallback((delay: number) => {
+    if (restartTimer.current) clearTimeout(restartTimer.current)
+    restartTimer.current = setTimeout(() => start(), delay)
+  }, [start])
+
   const start = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) {
@@ -46,6 +52,8 @@ export function useSpeechToText({
       return
     }
     if (blockRef.current) return
+    // Evita arranques superpuestos (el SO a veces dispara onend/start seguidos).
+    if (startingRef.current || listening) return
     finalRef.current = ''
     setTranscript('')
     armedRef.current = true
@@ -76,24 +84,43 @@ export function useSpeechToText({
     }
 
     recognition.onerror = (e: { error?: string }) => {
-      console.error('[STT]', e?.error)
-      setListening(false)
+      // no-speech / aborted son transitorios en móvil; el onend se encarga de reiniciar.
+      if (e?.error !== 'no-speech' && e?.error !== 'aborted') {
+        console.error('[STT]', e?.error)
+      }
       clearSilence()
     }
 
     recognition.onend = () => {
       setListening(false)
       clearSilence()
+      startingRef.current = false
       // Dictado continuo: si sigue armado y no esta bloqueado, reiniciar.
+      // (En iOS esto fallara por la politica de gesto y quedara apagado hasta
+      // un nuevo toque; en Android/desktop se mantiene escuchando.)
       if (armedRef.current && !blockRef.current) {
-        restartTimer.current = setTimeout(() => start(), 300)
+        scheduleRestart(400)
       }
     }
 
+    recognition.onstart = () => {
+      startingRef.current = false
+    }
+
     recognitionRef.current = recognition
-    recognition.start()
-    setListening(true)
-  }, [lang])
+    try {
+      recognition.start()
+      startingRef.current = true
+      setListening(true)
+    } catch (e) {
+      // En móvil el reinicio automatico sin gesto del usuario lanza error.
+      // No lo dejamos colgado: nos quedamos armados para que el usuario
+      // pueda volver a tocar el micrófono.
+      console.warn('[STT] No se pudo iniciar el reconocimiento (¿gesto requerido?):', e)
+      startingRef.current = false
+      setListening(false)
+    }
+  }, [lang, listening, scheduleRestart])
 
   const stop = useCallback((manual = false) => {
     clearSilence()
@@ -112,10 +139,10 @@ export function useSpeechToText({
   // Reactivar despues de que el TTS termina de hablar.
   useEffect(() => {
     if (prevBlock.current && !blockListening && armedRef.current && !listening) {
-      restartTimer.current = setTimeout(() => start(), 800)
+      scheduleRestart(800)
     }
     prevBlock.current = blockListening
-  }, [blockListening, listening, start])
+  }, [blockListening, listening, scheduleRestart])
 
   // Mientras el TTS habla, detener el micro (sin desarmar).
   useEffect(() => {
