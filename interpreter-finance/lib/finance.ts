@@ -11,6 +11,7 @@ export type DailyLog = {
   logged_on: string
   minutes: number
   note: string | null
+  is_active: boolean
   created_at: string
   updated_at: string
 }

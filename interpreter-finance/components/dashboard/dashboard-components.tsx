@@ -293,12 +293,12 @@ export function MonthlyChart() {
 }
 
 function Operations() {
-  const { currentMinutes, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta, todayEarnings, monthEarnings } = useFinance()
+  const { currentMinutes, todayTotal, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta, todayEarnings, monthEarnings } = useFinance()
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   return (
     <>
       <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
-        <StatCard label="Minutes logged today" value={`${Number(currentMinutes.toFixed(2))}m`} note={goal > 0 ? (goal - currentMinutes > 0 ? `${Number((goal - currentMinutes).toFixed(2))}m left` : 'Completed') : 'No goal set'} icon={Clock3} />
+        <StatCard label="Minutes logged today" value={`${Number(todayTotal.toFixed(2))}m`} note={goal > 0 ? (goal - todayTotal > 0 ? `${Number((goal - todayTotal).toFixed(2))}m left` : 'Completed') : 'No goal set'} icon={Clock3} />
         <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note={`$${monthEarnings.toFixed(2)} this month`} icon={BadgeDollarSign} />
         <StatCard label="Monthly total" value={formatMinutes(monthTotal)} note={`${weekDelta} vs last month`} icon={Target} />
         <StatCard label="Goal completion" value={`${goalHitRate}%`} note={`${completedDays} of ${daysInMonth} days`} icon={Check} />

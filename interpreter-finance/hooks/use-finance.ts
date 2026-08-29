@@ -14,6 +14,10 @@ export function useFinance() {
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [currentMinutes, setCurrentMinutes] = useState(0)
+  // id of the in-progress session row (is_active = true). Other rows are
+  // archived history that feeds Latest logs and earnings, and never get
+  // overwritten when the counter is reset.
+  const [activeLogId, setActiveLogId] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
@@ -30,10 +34,12 @@ export function useFinance() {
       setLogs(logsData ?? [])
 
       const today = localToday()
-      const todayLog = logsData?.find((l) => l.logged_on === today)
-      if (todayLog) {
-        setCurrentMinutes(todayLog.minutes)
+      const activeLog = logsData?.find((l) => l.logged_on === today && l.is_active)
+      if (activeLog) {
+        setActiveLogId(activeLog.id)
+        setCurrentMinutes(activeLog.minutes)
       } else {
+        setActiveLogId(null)
         setCurrentMinutes(0)
       }
 
@@ -80,7 +86,10 @@ export function useFinance() {
 
   const today = localToday()
 
-  const todayLogs = useMemo(() => logs.filter((l) => l.logged_on === today), [logs, today])
+  const todayTotal = useMemo(
+    () => logs.filter((l) => l.logged_on === today).reduce((sum, l) => sum + l.minutes, 0),
+    [logs, today]
+  )
   const monthLogs = useMemo(() => {
     const currentMonth = localMonth()
     return logs.filter((l) => l.logged_on.startsWith(currentMonth))
@@ -111,7 +120,7 @@ export function useFinance() {
 
   const progress = useMemo(() => getProgress(currentMinutes, goal), [currentMinutes, goal])
 
-  const todayEarnings = useMemo(() => Number((currentMinutes * ratePerMinute).toFixed(2)), [currentMinutes, ratePerMinute])
+  const todayEarnings = useMemo(() => Number((todayTotal * ratePerMinute).toFixed(2)), [todayTotal, ratePerMinute])
   const monthEarnings = useMemo(() => {
     const now = new Date()
     const dayOfMonth = now.getDate()
@@ -129,13 +138,24 @@ export function useFinance() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
 
-      if (todayLogs.length > 0) {
-        const { data, error } = await supabase.from('daily_logs').update({ minutes: minutesToSave, updated_at: new Date().toISOString() }).eq('id', todayLogs[0].id).select().single()
+      if (activeLogId) {
+        const { data, error } = await supabase
+          .from('daily_logs')
+          .update({ minutes: minutesToSave, updated_at: new Date().toISOString() })
+          .eq('id', activeLogId)
+          .select()
+          .single()
         if (error) throw error
-        setLogs((prev) => prev.map((l) => l.id === todayLogs[0].id ? data : l))
+        setLogs((prev) => prev.map((l) => (l.id === activeLogId ? data : l)))
       } else {
-        const { data, error } = await supabase.from('daily_logs').insert([{ user_id: session.user.id, logged_on: today, minutes: minutesToSave, note: null }]).select().single()
+        if (minutesToSave === 0) return
+        const { data, error } = await supabase
+          .from('daily_logs')
+          .insert([{ user_id: session.user.id, logged_on: today, minutes: minutesToSave, note: null, is_active: true }])
+          .select()
+          .single()
         if (error) throw error
+        setActiveLogId(data.id)
         setLogs((prev) => [data, ...prev])
       }
     } catch (e: any) {
@@ -143,15 +163,33 @@ export function useFinance() {
     } finally {
       setIsSaving(false)
     }
-  }, [currentMinutes, todayLogs, today])
+  }, [activeLogId, today])
 
   const addMinutes = useCallback((value: number) => {
     persistMinutes(currentMinutes + value)
   }, [currentMinutes, persistMinutes])
 
   const setMinutes = useCallback((value: number) => {
-    setCurrentMinutes(value)
-  }, [])
+    if (value === 0) {
+      // Reset: archive the current session row (keep its minutes) so Latest
+      // logs and earnings are preserved, then start a fresh session at 0.
+      const archivedId = activeLogId
+      if (archivedId) {
+        setActiveLogId(null)
+        setCurrentMinutes(0)
+        setLogs((prev) => prev.map((l) => (l.id === archivedId ? { ...l, is_active: false } : l)))
+        supabase
+          .from('daily_logs')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq('id', archivedId)
+          .then(({ error }) => { if (error) console.error('Archive log error:', error.message) })
+      } else {
+        setCurrentMinutes(0)
+      }
+    } else {
+      setCurrentMinutes(value)
+    }
+  }, [activeLogId])
 
   const saveMinutes = useCallback(async () => {
     await persistMinutes(currentMinutes)
@@ -208,7 +246,7 @@ export function useFinance() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
-      const { data, error } = await supabase.from('daily_logs').insert([{ user_id: session.user.id, logged_on: today, minutes: mins, note: note ?? null }]).select().single()
+      const { data, error } = await supabase.from('daily_logs').insert([{ user_id: session.user.id, logged_on: today, minutes: mins, note: note ?? null, is_active: false }]).select().single()
       if (error) throw error
       setLogs((prev) => [data, ...prev])
       return data
@@ -233,6 +271,6 @@ export function useFinance() {
     currentMinutes, minutes: currentMinutes, goal, workHours, ratePerMinute, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
     monthTotal, monthAverage, goalHitRate, goalProgress, completedDays, summary, weeklyData: periodData, chartData, calendarDays,
     recentEntries, summaryMessage, weekDelta, greeting, monthTitle, deleteEntry, addEntry, logs,
-    todayEarnings, monthEarnings,
+    todayEarnings, monthEarnings, todayTotal,
   }
 }

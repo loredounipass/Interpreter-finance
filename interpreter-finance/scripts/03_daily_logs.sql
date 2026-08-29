@@ -17,12 +17,18 @@ create table if not exists public.daily_logs (
   logged_on date not null default current_date,
   minutes numeric not null check (minutes >= 0),
   note text,
+  -- marks the current in-progress session; archived (false) rows stay in history forever
+  is_active boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists daily_logs_user_date_idx
   on public.daily_logs (user_id, logged_on desc, created_at desc);
+
+-- only one in-progress session per user per day
+create unique index if not exists daily_logs_one_active_per_day
+  on public.daily_logs (user_id, logged_on) where is_active;
 
 drop trigger if exists daily_logs_set_updated_at on public.daily_logs;
 create trigger daily_logs_set_updated_at before update on public.daily_logs
