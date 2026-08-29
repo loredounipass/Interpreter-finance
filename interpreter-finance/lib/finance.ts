@@ -267,6 +267,45 @@ export function getMonthlyGoal(goal = goalMinutes, days = 31) { return goal * da
 
 export function hasHitGoal(minutes: number, goal = goalMinutes) { return minutes >= goal }
 
+export type EarningsBreakdown = {
+  todayEarnings: number
+  weekEarnings: number
+  monthEarnings: number
+  yearEarnings: number
+  totalEarnings: number
+  qualifiedDays: { date: string; minutes: number; note: string | null; earnings: number; qualified: boolean }[]
+}
+
+/** Earnings only count on days where the daily goal was met. */
+export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: number): EarningsBreakdown {
+  const earn = (minutes: number) => Number((minutes * ratePerMinute).toFixed(2))
+  const qualifies = (l: DailyLog) => goal > 0 ? l.minutes >= goal : l.minutes > 0
+
+  const today = localToday()
+  const month = localMonth()
+  const year = String(new Date().getFullYear())
+
+  const weekAgo = new Date()
+  weekAgo.setDate(weekAgo.getDate() - 6)
+  const weekStart = dateKey(weekAgo)
+
+  const qualified = logs.filter(qualifies)
+
+  const todayLog = logs.find((l) => l.logged_on === today)
+  const todayEarnings = todayLog && qualifies(todayLog) ? earn(todayLog.minutes) : 0
+  const weekEarnings = qualified.filter((l) => l.logged_on >= weekStart && l.logged_on <= today).reduce((s, l) => s + earn(l.minutes), 0)
+  const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + earn(l.minutes), 0)
+  const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
+  const totalEarnings = qualified.reduce((s, l) => s + earn(l.minutes), 0)
+
+  const qualifiedDays = [...logs]
+    .sort((a, b) => b.logged_on.localeCompare(a.logged_on))
+    .slice(0, 14)
+    .map((l) => ({ date: l.logged_on, minutes: l.minutes, note: l.note, earnings: earn(l.minutes), qualified: qualifies(l) }))
+
+  return { todayEarnings, weekEarnings, monthEarnings, yearEarnings, totalEarnings, qualifiedDays }
+}
+
 export type NavItem = typeof navItems[number]
 export type RecentEntryData = RecentEntry
 
