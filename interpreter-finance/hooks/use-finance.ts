@@ -90,7 +90,13 @@ export function useFinance() {
   const progress = useMemo(() => getProgress(currentMinutes, goal), [currentMinutes, goal])
 
   const todayEarnings = useMemo(() => Number((currentMinutes * ratePerMinute).toFixed(2)), [currentMinutes, ratePerMinute])
-  const monthEarnings = useMemo(() => Number((monthTotal * ratePerMinute).toFixed(2)), [monthTotal, ratePerMinute])
+  const monthEarnings = useMemo(() => {
+    const now = new Date()
+    const dayOfMonth = now.getDate()
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const projectedTotal = dayOfMonth > 0 ? (monthTotal / dayOfMonth) * daysInMonth : monthTotal
+    return Number((projectedTotal * ratePerMinute).toFixed(2))
+  }, [monthTotal, ratePerMinute])
 
   const persistMinutes = useCallback(async (newTotal: number) => {
     const minutesToSave = Number(newTotal.toFixed(2))

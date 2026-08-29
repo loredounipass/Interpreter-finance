@@ -102,17 +102,19 @@ export function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
   )
 }
 
-export function StatCard({ label, value, note, icon: Icon }: { label: string; value: string; note: string; icon: React.ElementType }) {
+export function StatCard({ label, value, note, icon: Icon, large = false }: { label: string; value: string; note: string; icon: React.ElementType; large?: boolean }) {
+  const labelSize = large ? 'text-xl font-bold' : 'text-xs text-muted-foreground'
+  const valueSize = large ? 'font-mono text-5xl font-bold' : 'font-mono text-2xl font-medium'
+  const noteSize = large ? 'text-lg text-muted-foreground' : 'text-xs text-muted-foreground'
+  const iconSize = large ? 'size-6' : 'size-4'
   return (
-    <Glass className="flex min-h-28 flex-col justify-between p-3.5">
-      <div className="flex items-start justify-between">
-        <p className="max-w-32 text-xs leading-5 text-muted-foreground">{label}</p>
-        <div className="grid size-7 place-items-center rounded-md bg-primary/15 text-primary"><Icon className="size-4" /></div>
+    <Glass className="flex min-h-28 flex-col items-start p-3.5">
+      <div className="flex items-center gap-2">
+        <div className="grid size-7 place-items-center rounded-md bg-primary/15 text-primary"><Icon className={iconSize} /></div>
+        <p className={labelSize}>{label}</p>
       </div>
-      <div>
-        <p className="font-mono text-2xl font-medium">{value}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{note}</p>
-      </div>
+      <p className={valueSize} style={{ marginTop: large ? '0.5rem' : '0.25rem' }}>{value}</p>
+      <p className={noteSize} style={{ marginTop: large ? '0.25rem' : '0.125rem' }}>{note}</p>
     </Glass>
   )
 }
@@ -171,10 +173,10 @@ export function GoalCard() {
           <button type="submit" disabled={!draftMins} className="px-2 text-xs font-semibold text-primary disabled:opacity-50">Add</button>
         </form>
 
-        <button onClick={() => setMinutes(0)} className="ml-auto rounded-lg px-3 py-2 text-xs text-muted-foreground hover:text-foreground">Reset</button>
         <button onClick={saveMinutes} disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
           {isSaving ? 'Saving...' : 'Save log'}
         </button>
+        <button onClick={() => setMinutes(0)} className="ml-auto rounded-lg px-3 py-2 text-xs text-muted-foreground hover:text-foreground">Reset</button>
       </div>
     </Glass>
   )
@@ -215,11 +217,8 @@ export function GoalSettings() {
           </div>
         </label>
         <label className="flex flex-col gap-2 sm:col-span-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rate per minute ($)</span>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground pl-1">$</span>
-            <input type="number" min="0.01" step="0.01" value={ratePerMinute} onChange={(e) => setRatePerMinute(Math.max(0, Number(e.target.value) || 0))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
-          </div>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rate per minute</span>
+          <input type="number" min="0.01" step="0.01" value={ratePerMinute} onChange={(e) => setRatePerMinute(Math.max(0, Number(e.target.value) || 0))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
         </label>
       </div>
       <div className="mt-5 rounded-xl border border-primary/20 bg-primary/10 p-4">
@@ -266,19 +265,11 @@ export function ActivityList() {
 }
 
 export function CalendarCard() {
-  const { calendarDays, goal } = useFinance()
   return (
     <Glass className="p-5">
       <div className="flex items-center justify-between">
         <div><Eyebrow>Monthly rhythm</Eyebrow><h2 className="mt-1 text-lg font-semibold">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2></div>
         <button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-muted-foreground"><CalendarDays className="size-3.5" />Month <ChevronDown className="size-3" /></button>
-      </div>
-      <div className="mt-5 grid grid-cols-7 gap-1.5">
-        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => <span key={`${day}-${i}`} className="pb-1 text-center font-mono text-[10px] text-muted-foreground">{day}</span>)}
-        {Array.from({ length: 5 }).map((_, i) => <span key={`empty-${i}`} />)}
-        {calendarDays.map(({ day, minutes }) => (
-          <div key={day} className={`grid aspect-square place-items-center rounded-md font-mono text-[10px] ${minutes >= goal ? 'bg-primary/25 text-primary' : 'bg-white/[0.07] text-muted-foreground'} ${day === new Date().getDate() ? 'ring-1 ring-primary' : ''}`}>{day}</div>
-        ))}
       </div>
     </Glass>
   )
@@ -305,7 +296,7 @@ function Operations() {
     <>
       <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
         <StatCard label="Minutes logged today" value={`${Number(currentMinutes.toFixed(2))}m`} note={goal > 0 ? (goal - currentMinutes > 0 ? `${Number((goal - currentMinutes).toFixed(2))}m left` : 'Completed') : 'No goal set'} icon={Clock3} />
-        <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note={`$${monthEarnings.toFixed(2)} this month`} icon={BadgeDollarSign} />
+<StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note={`$${monthEarnings.toFixed(2)} this month`} icon={BadgeDollarSign} large />
         <StatCard label="Monthly total" value={formatMinutes(monthTotal)} note={`${weekDelta} vs last month`} icon={Target} />
         <StatCard label="Goal completion" value={`${goalHitRate}%`} note={`${completedDays} of ${daysInMonth} days`} icon={Check} />
         <StatCard label="Current streak" value={`${summary.streak}d`} note="Keep it going!" icon={Flame} />
@@ -326,8 +317,10 @@ function Operations() {
 }
 
 function DailyLog() {
+  const { todayEarnings, monthEarnings } = useFinance()
   return (
     <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note={`$${monthEarnings.toFixed(2)} this month`} icon={BadgeDollarSign} large />
       <GoalCard /><ActivityList /><CalendarCard />
     </div>
   )
