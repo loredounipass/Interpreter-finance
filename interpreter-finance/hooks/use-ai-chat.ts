@@ -16,8 +16,8 @@ export function useAIChat() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const send = useCallback(async (context?: ChatContext) => {
-    const text = input.trim()
+  const send = useCallback(async (context?: ChatContext, overrideText?: string) => {
+    const text = (overrideText ?? input).trim()
     if (!text || isLoading) return
 
     const nextMessages: ChatMessage[] = [...messages, { role: 'user', content: text }]

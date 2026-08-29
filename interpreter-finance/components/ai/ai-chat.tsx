@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Bot, Loader2, ArrowUp, Trash2, Mic, MicOff, Settings2 } from 'lucide-react'
+import { Bot, Loader2, ArrowUp, Trash2, Mic, MicOff, Settings2, Waves } from 'lucide-react'
 import { useAIChat } from '@/hooks/use-ai-chat'
 import { AI_MODEL_LIST } from '@/utils/ai-models'
 import { useFinance } from '@/hooks/use-finance'
 import { useTTS, DEFAULT_TTS_SETTINGS, type TTSSettings } from '@/hooks/use-tts'
+import { useSpeechToText } from '@/hooks/use-speech-to-text'
 import type { ChatContext } from '@/utils/ai-system-prompt'
 
 function Markdown({ content }: { content: string }) {
@@ -63,6 +64,21 @@ export function AIChat() {
     }),
     [goal, ratePerMinute, todayTotal, todayEarnings, monthEarnings, monthTotal, completedDays, goalHitRate, logs, tts.settings]
   )
+
+  const handleFinal = useCallback(
+    (text: string) => {
+      setInput(text)
+      send(context, text)
+    },
+    [context, send]
+  )
+
+  const stt = useSpeechToText({ lang: tts.settings?.language ?? 'es-US', onFinal: handleFinal })
+
+  // Mostrar en vivo el texto reconocido en el input mientras se escucha.
+  useEffect(() => {
+    if (stt.listening) setInput(stt.transcript)
+  }, [stt.transcript, stt.listening])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -187,6 +203,18 @@ export function AIChat() {
       <div className="px-4 pb-5">
         <div className="mx-auto w-full max-w-3xl">
           <div className="relative flex items-end gap-2 rounded-3xl border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-colors focus-within:border-primary/50">
+            <button
+              type="button"
+              onClick={stt.toggle}
+              aria-label={stt.listening ? 'Detener dictado' : 'Dictar con voz'}
+              className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
+                stt.listening
+                  ? 'animate-pulse bg-destructive text-destructive-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Waves className="size-4" />
+            </button>
             <button
               type="button"
               onClick={tts.toggle}
