@@ -31,7 +31,11 @@ export function useFinance() {
 
       const today = localToday()
       const todayLog = logsData?.find((l) => l.logged_on === today)
-      if (todayLog) setCurrentMinutes(todayLog.minutes)
+      if (todayLog) {
+        setCurrentMinutes(todayLog.minutes)
+      } else {
+        setCurrentMinutes(0)
+      }
 
       const { data: goalData, error: goalError } = await supabase
         .from('goals')
@@ -147,11 +151,11 @@ export function useFinance() {
 
   const setMinutes = useCallback((value: number) => {
     if (value === 0) {
-      setCurrentMinutes(0)
+      persistMinutes(0)
     } else {
       setCurrentMinutes(value)
     }
-  }, [])
+  }, [persistMinutes])
 
   const saveMinutes = useCallback(async () => {
     await persistMinutes(currentMinutes)

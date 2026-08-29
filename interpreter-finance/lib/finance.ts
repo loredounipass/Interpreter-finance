@@ -279,9 +279,14 @@ export type EarningsBreakdown = {
 /** Earnings only count on days where the daily goal was met. */
 export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: number): EarningsBreakdown {
   const earn = (minutes: number) => Number((minutes * ratePerMinute).toFixed(2))
-  const qualifies = (l: DailyLog) => goal > 0 ? l.minutes >= goal : l.minutes > 0
-
   const today = localToday()
+  const qualifies = (l: DailyLog) => {
+    if (goal > 0) {
+      return l.minutes >= goal || l.logged_on < today
+    }
+    return l.minutes > 0
+  }
+
   const month = localMonth()
   const year = String(new Date().getFullYear())
 
