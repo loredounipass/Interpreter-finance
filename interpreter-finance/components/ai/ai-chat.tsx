@@ -83,9 +83,27 @@ export function AIChat() {
     [goal, ratePerMinute, todayTotal, todayEarnings, monthEarnings, monthTotal, completedDays, goalHitRate, logs, tts.settings]
   )
 
+  // Marca el momento en que terminó de hablar TTS para ignorar el eco del
+  // altavoz (en móvil el micrófono captura el audio de Maggie y se genera
+  // un bucle que repite la respuesta y gasta la API).
+  const ttsEndRef = useRef(0)
+  useEffect(() => {
+    if (!tts.speaking) ttsEndRef.current = Date.now()
+  }, [tts.speaking])
+
+  // Evita enviar el mismo texto dos veces seguidas (el STT a veces dispara el
+  // resultado final más de una vez, o captura un eco).
+  const lastSentRef = useRef<{ text: string; time: number } | null>(null)
+
   const handleFinal = useCallback(
     (text: string) => {
       if (tts.speaking) return
+      // Ignora resultados dentro de los 2s posteriores a que Maggie terminó
+      // de hablar: es el eco del propio TTS, no tu voz.
+      if (Date.now() - ttsEndRef.current < 2000) return
+      const now = Date.now()
+      if (lastSentRef.current && lastSentRef.current.text === text && now - lastSentRef.current.time < 3000) return
+      lastSentRef.current = { text, time: now }
       setInput(text)
       send(context, text)
     },
@@ -117,15 +135,19 @@ export function AIChat() {
   }, [tts.enabled])
 
   // Reproducir TTS cuando termina de generarse un mensaje del asistente.
+  // Usamos speakRef para no re-ejecutar este efecto si cambia la identidad de
+  // tts.speak (eso repetiría la última respuesta sin que haya un mensaje nuevo).
+  const speakRef = useRef(tts.speak)
+  speakRef.current = tts.speak
   useEffect(() => {
     if (isLoading || !tts.enabled) return
     const lastIdx = messages.reduce((acc, m, i) => (m.role === 'assistant' ? i : acc), -1)
     if (lastIdx > spokenIdx.current) {
       spokenIdx.current = lastIdx
       const content = messages[lastIdx]?.content ?? ''
-      if (content.trim()) tts.speak(content)
+      if (content.trim()) speakRef.current(content)
     }
-  }, [messages, isLoading, tts.enabled, tts.speak])
+  }, [messages, isLoading, tts.enabled])
 
   // Sincronizar el borrador al abrir el dialogo.
   useEffect(() => {
