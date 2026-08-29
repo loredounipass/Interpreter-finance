@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Passwords do not match.' }, { status: 400 })
     }
 
-    if (password.length > 8 || password.length < 4) {
-      return NextResponse.json({ error: 'Password must be between 4 and 8 characters.' }, { status: 400 })
+    if (password.length > 64 || password.length < 4) {
+      return NextResponse.json({ error: 'Password must be between 4 and 64 characters.' }, { status: 400 })
     }
 
     if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {

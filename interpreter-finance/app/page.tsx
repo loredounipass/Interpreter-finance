@@ -1,12 +1,11 @@
 'use client'
 
 import { useAuth } from '@/hooks/use-auth'
-import { useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { Dashboard } from '@/components/dashboard/dashboard-components'
 
 export default function Page() {
   const { user, isLoading } = useAuth()
-  const router = useRouter()
 
   if (isLoading) {
     return (
@@ -17,8 +16,7 @@ export default function Page() {
   }
 
   if (!user) {
-    router.replace('/login')
-    return null
+    redirect('/login')
   }
 
   return <Dashboard />

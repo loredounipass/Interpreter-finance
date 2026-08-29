@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Mail, Lock } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 export function LoginForm() {
   const router = useRouter()
@@ -12,6 +12,8 @@ export function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [verifyPassword, setVerifyPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showVerifyPassword, setShowVerifyPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -95,12 +97,18 @@ export function LoginForm() {
           )}
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input type="password" required placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 pl-9 text-sm outline-none focus:border-primary/50" />
+            <input type={showPassword ? 'text' : 'password'} required placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 pl-9 pr-9 text-sm outline-none focus:border-primary/50" />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
           </div>
           {mode === 'register' && (
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input type="password" required placeholder="Verify password" value={verifyPassword} onChange={(e) => setVerifyPassword(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 pl-9 text-sm outline-none focus:border-primary/50" />
+              <input type={showVerifyPassword ? 'text' : 'password'} required placeholder="Verify password" value={verifyPassword} onChange={(e) => setVerifyPassword(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 pl-9 pr-9 text-sm outline-none focus:border-primary/50" />
+              <button type="button" onClick={() => setShowVerifyPassword(!showVerifyPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showVerifyPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
             </div>
           )}
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -114,7 +122,7 @@ export function LoginForm() {
           </button>
         </div>
         {mode === 'register' && (
-          <p className="mt-3 text-center text-xs text-muted-foreground">Password must be 4-8 characters with uppercase, lowercase, number, and special character.</p>
+          <p className="mt-3 text-center text-xs text-muted-foreground">Password must be 4-64 characters with uppercase, lowercase, number, and special character.</p>
         )}
       </div>
     </div>
