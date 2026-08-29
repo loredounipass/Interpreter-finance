@@ -7,8 +7,13 @@ import {
 import type { ChartPoint } from '@/lib/finance'
 
 export function ProgressChart({ data }: { data: ChartPoint[] }) {
-  const maxDataValue = data.length > 0 ? Math.max(...data.map((d) => Math.max(d.goal || 0, d.minutes || 0))) : 120
-  const yMax = Math.max(120, Math.ceil(maxDataValue))
+  const goals = data.map((d) => d.goal || 0)
+  const goalMax = goals.length > 0 ? Math.max(...goals) : 0
+  const minutesMax = data.length > 0 ? Math.max(...data.map((d) => d.minutes || 0)) : 0
+  const maxDataValue = Math.max(goalMax, minutesMax)
+  // Top of the axis follows the configured goal (with a little headroom);
+  // only fall back to a small default when there is no goal configured yet.
+  const yMax = goalMax > 0 ? Math.ceil((goalMax * 1.15) / 10) * 10 : Math.max(120, Math.ceil(maxDataValue))
 
   return (
     <div className="h-[200px] w-full" aria-label="Daily interpretation minutes chart" role="img">

@@ -297,8 +297,8 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
 
   const qualified = logs.filter(qualifies)
 
-  const todayLog = logs.find((l) => l.logged_on === today)
-  const todayEarnings = todayLog && qualifies(todayLog) ? earn(todayLog.minutes) : 0
+  const todayLogs = logs.filter((l) => l.logged_on === today)
+  const todayEarnings = todayLogs.filter(qualifies).reduce((s, l) => s + earn(l.minutes), 0)
   const weekEarnings = qualified.filter((l) => l.logged_on >= weekStart && l.logged_on <= today).reduce((s, l) => s + earn(l.minutes), 0)
   const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + earn(l.minutes), 0)
   const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
