@@ -74,17 +74,16 @@ export function AIChat() {
     [context, send, tts.speaking]
   )
 
-  const stt = useSpeechToText({ lang: tts.settings?.language ?? 'es-US', onFinal: handleFinal })
+  const stt = useSpeechToText({
+    lang: tts.settings?.language ?? 'es-US',
+    onFinal: handleFinal,
+    blockListening: tts.speaking,
+  })
 
   // Mostrar en vivo el texto reconocido en el input mientras se escucha.
   useEffect(() => {
     if (stt.listening) setInput(stt.transcript)
   }, [stt.transcript, stt.listening])
-
-  // Evitar bucle: mientras el asistente habla (TTS), no escuchar micrófono.
-  useEffect(() => {
-    if (tts.speaking) stt.stop()
-  }, [tts.speaking, stt])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -214,11 +213,13 @@ export function AIChat() {
             <button
               type="button"
               onClick={stt.toggle}
-              disabled={tts.speaking || isLoading}
-              aria-label={stt.listening ? 'Detener dictado' : 'Dictar con voz'}
+              disabled={isLoading}
+              aria-label={stt.armed ? 'Detener dictado' : 'Dictar con voz'}
               className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-40 ${
                 stt.listening
                   ? 'animate-pulse bg-destructive text-destructive-foreground'
+                  : stt.armed
+                  ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
