@@ -121,16 +121,11 @@ export function useFinance() {
     setCurrentMinutes(minutesToSave)
     setIsSaving(true)
     try {
+      if (minutesToSave <= 0) return
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
 
-      if (minutesToSave === 0) {
-        if (todayLogs.length > 0) {
-          const { error } = await supabase.from('daily_logs').delete().eq('id', todayLogs[0].id)
-          if (error) throw error
-          setLogs((prev) => prev.filter((l) => l.id !== todayLogs[0].id))
-        }
-      } else if (todayLogs.length > 0) {
+      if (todayLogs.length > 0) {
         const { data, error } = await supabase.from('daily_logs').update({ minutes: minutesToSave, updated_at: new Date().toISOString() }).eq('id', todayLogs[0].id).select().single()
         if (error) throw error
         setLogs((prev) => prev.map((l) => l.id === todayLogs[0].id ? data : l))
@@ -152,11 +147,11 @@ export function useFinance() {
 
   const setMinutes = useCallback((value: number) => {
     if (value === 0) {
-      persistMinutes(0)
+      setCurrentMinutes(0)
     } else {
       setCurrentMinutes(value)
     }
-  }, [persistMinutes])
+  }, [])
 
   const saveMinutes = useCallback(async () => {
     await persistMinutes(currentMinutes)
