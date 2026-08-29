@@ -48,9 +48,9 @@ export function useFinance() {
         .select('id, daily_minutes, work_hours, rate_per_minute')
         .eq('user_id', session.user.id)
         .eq('is_active', true)
-        .single()
+        .maybeSingle()
 
-      if (goalError && goalError.code !== 'PGRST116') throw goalError
+      if (goalError) throw goalError
       if (goalData) {
         setGoal(goalData.daily_minutes)
         if (goalData.work_hours) setWorkHours(goalData.work_hours)
