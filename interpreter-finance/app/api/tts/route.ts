@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { TTS_PROVIDER, getProviderApiKey } from '@/utils/ai-providers'
+
+type TTSLanguage = 'es-US' | 'en-US'
+type TTSVoice = 'Diego' | 'Isabela'
+type TTSEmotion = 'default' | 'neutral' | 'calm' | 'happy' | 'angry' | 'pleasantSurprised'
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const text = String(body.text ?? '').trim()
+    const language: TTSLanguage = body.language === 'en-US' ? 'en-US' : 'es-US'
+    const voice: TTSVoice = body.voice === 'Isabela' ? 'Isabela' : 'Diego'
+    const emotion: TTSEmotion = body.emotion ?? 'default'
+
+    if (!text) {
+      return NextResponse.json({ error: 'Falta el texto.' }, { status: 400 })
+    }
+    if (text.length > 2000) {
+      return NextResponse.json({ error: 'El texto excede 2000 caracteres.' }, { status: 400 })
+    }
+
+    const apiKey = getProviderApiKey('nvidia')
+    if (!apiKey) {
+      return NextResponse.json({ error: `Falta la variable de entorno ${TTS_PROVIDER.envKey}.` }, { status: 500 })
+    }
+
+    const locale = language === 'en-US' ? 'EN-US' : 'ES-US'
+    const voiceName =
+      emotion && emotion !== 'default'
+        ? `Magpie-Multilingual.${locale}.${voice}.${emotion[0].toUpperCase()}${emotion.slice(1)}`
+        : `Magpie-Multilingual.${locale}.${voice}`
+
+    const form = new FormData()
+    form.append('text', text)
+    form.append('language', language)
+    form.append('voice', voiceName)
+    form.append('encoding', 'LINEAR_PCM')
+    form.append('sample_rate_hz', '44100')
+
+    const response = await fetch(TTS_PROVIDER.url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    })
+
+    if (!response.ok) {
+      const textErr = await response.text()
+      return NextResponse.json(
+        { error: `Error del TTS (${response.status}): ${textErr.slice(0, 300)}` },
+        { status: 502 }
+      )
+    }
+
+    const buffer = await response.arrayBuffer()
+    return new Response(buffer, {
+      headers: {
+        'Content-Type': 'audio/wav',
+        'Cache-Control': 'no-store',
+      },
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: `Error interno: ${error instanceof Error ? error.message : String(error)}` },
+      { status: 500 }
+    )
+  }
+}

@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Bot, Loader2, ArrowUp, Trash2 } from 'lucide-react'
+import { Bot, Loader2, ArrowUp, Trash2, Mic, MicOff, Settings2 } from 'lucide-react'
 import { useAIChat } from '@/hooks/use-ai-chat'
 import { AI_MODEL_LIST } from '@/utils/ai-models'
 import { useFinance } from '@/hooks/use-finance'
+import { useTTS, DEFAULT_TTS_SETTINGS, type TTSSettings } from '@/hooks/use-tts'
 import type { ChatContext } from '@/utils/ai-system-prompt'
 
 function Markdown({ content }: { content: string }) {
@@ -17,10 +18,35 @@ function Markdown({ content }: { content: string }) {
   )
 }
 
+const LANGUAGES = [
+  { value: 'es-US', label: 'Español (US)' },
+  { value: 'en-US', label: 'English (US)' },
+] as const
+
+const VOICES = [
+  { value: 'Diego', label: 'Diego' },
+  { value: 'Isabela', label: 'Isabela' },
+] as const
+
+const EMOTIONS = [
+  { value: 'default', label: 'Por defecto' },
+  { value: 'neutral', label: 'Neutral' },
+  { value: 'calm', label: 'Calmado' },
+  { value: 'happy', label: 'Feliz' },
+  { value: 'angry', label: 'Enojado' },
+  { value: 'pleasantSurprised', label: 'Sorprendido' },
+] as const
+
+const selectClass =
+  'mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-primary/50'
+
 export function AIChat() {
   const { messages, model, setModel, input, setInput, isLoading, error, send, clear } = useAIChat()
   const { goal, ratePerMinute, todayTotal, todayEarnings, monthEarnings, monthTotal, completedDays, goalHitRate, logs } = useFinance()
+  const tts = useTTS()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const spokenIdx = useRef(-1)
+  const [draft, setDraft] = useState<TTSSettings>(tts.settings ?? DEFAULT_TTS_SETTINGS)
 
   const context = useMemo<ChatContext>(
     () => ({
@@ -32,14 +58,40 @@ export function AIChat() {
       monthTotal,
       completedDays,
       goalHitRate,
+      language: tts.settings?.language ?? 'es-US',
       recentLogs: logs.map((l) => ({ logged_on: l.logged_on, minutes: l.minutes, note: l.note })),
     }),
-    [goal, ratePerMinute, todayTotal, todayEarnings, monthEarnings, monthTotal, completedDays, goalHitRate, logs]
+    [goal, ratePerMinute, todayTotal, todayEarnings, monthEarnings, monthTotal, completedDays, goalHitRate, logs, tts.settings]
   )
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages])
+
+  // Al activar la voz, no leemos mensajes anteriores: avanzamos el marcador.
+  useEffect(() => {
+    if (tts.enabled) {
+      const lastIdx = messages.reduce((acc, m, i) => (m.role === 'assistant' ? i : acc), -1)
+      spokenIdx.current = lastIdx
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tts.enabled])
+
+  // Reproducir TTS cuando termina de generarse un mensaje del asistente.
+  useEffect(() => {
+    if (isLoading || !tts.enabled) return
+    const lastIdx = messages.reduce((acc, m, i) => (m.role === 'assistant' ? i : acc), -1)
+    if (lastIdx > spokenIdx.current) {
+      spokenIdx.current = lastIdx
+      const content = messages[lastIdx]?.content ?? ''
+      if (content.trim()) tts.speak(content)
+    }
+  }, [messages, isLoading, tts.enabled, tts.speak])
+
+  // Sincronizar el borrador al abrir el dialogo.
+  useEffect(() => {
+    if (tts.dialogOpen) setDraft(tts.settings ?? DEFAULT_TTS_SETTINGS)
+  }, [tts.dialogOpen, tts.settings])
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -134,7 +186,27 @@ export function AIChat() {
 
       <div className="px-4 pb-5">
         <div className="mx-auto w-full max-w-3xl">
-          <div className="relative flex items-end gap-2 rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-2.5 transition-colors focus-within:border-primary/50">
+          <div className="relative flex items-end gap-2 rounded-3xl border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-colors focus-within:border-primary/50">
+            <button
+              type="button"
+              onClick={tts.toggle}
+              aria-label={tts.enabled ? 'Desactivar voz' : 'Activar voz'}
+              className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
+                tts.enabled ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tts.enabled ? <Mic className="size-4" /> : <MicOff className="size-4" />}
+            </button>
+            {tts.enabled && (
+              <button
+                type="button"
+                onClick={() => tts.setDialogOpen(true)}
+                aria-label="Configurar voz"
+                className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Settings2 className="size-4" />
+              </button>
+            )}
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -153,10 +225,79 @@ export function AIChat() {
             </button>
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            El asistente puede equivocarse. Enter para enviar, Shift+Enter para salto de línea.
+            {tts.enabled ? '🔊 Voz activada · ' : ''}Enter para enviar, Shift+Enter para salto de línea.
           </p>
         </div>
       </div>
+
+      {tts.dialogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => tts.setDialogOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-card p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold">Configuración de voz</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Elige idioma, voz y emoción para la lectura de las respuestas.
+            </p>
+            <div className="mt-4 space-y-3">
+              <label className="block">
+                <span className="text-xs text-muted-foreground">Idioma</span>
+                <select
+                  value={draft.language}
+                  onChange={(e) => setDraft({ ...draft, language: e.target.value as TTSSettings['language'] })}
+                  className={selectClass}
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.value} value={l.value}>{l.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs text-muted-foreground">Voz</span>
+                <select
+                  value={draft.voice}
+                  onChange={(e) => setDraft({ ...draft, voice: e.target.value as TTSSettings['voice'] })}
+                  className={selectClass}
+                >
+                  {VOICES.map((v) => (
+                    <option key={v.value} value={v.value}>{v.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs text-muted-foreground">Emoción</span>
+                <select
+                  value={draft.emotion}
+                  onChange={(e) => setDraft({ ...draft, emotion: e.target.value as TTSSettings['emotion'] })}
+                  className={selectClass}
+                >
+                  {EMOTIONS.map((em) => (
+                    <option key={em.value} value={em.value}>{em.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => tts.setDialogOpen(false)}
+                className="rounded-lg border border-white/10 px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => tts.saveSettings(draft)}
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

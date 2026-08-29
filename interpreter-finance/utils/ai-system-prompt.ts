@@ -13,6 +13,7 @@ export interface ChatContext {
   monthTotal: number
   completedDays: number
   goalHitRate: number
+  language?: 'es-US' | 'en-US'
   recentLogs: { logged_on: string; minutes: number; note: string | null }[]
 }
 
@@ -34,6 +35,7 @@ export function buildSystemPrompt(ctx: ChatContext): string {
 
   const contextBlock = `
 === CONTEXTO DEL USUARIO (no lo menciones como "datos", usalo naturalmente) ===
+- Idioma de respuesta: ${ctx.language === 'en-US' ? 'ingles (English)' : 'espanol'}.
 - Meta diaria inicial (goal): ${ctx.goalMinutes} minutos.
 - Tarifa: $${ctx.ratePerMinute.toFixed(2)} por minuto.
 - Minutos de hoy: ${ctx.todayMinutes} min.
