@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Bot, Loader2, ArrowUp, Trash2, Mic, MicOff, Settings2, Waves } from 'lucide-react'
+import { Bot, Loader2, ArrowUp, Trash2, Mic, MicOff, Settings2, Waves, Plus, Menu, X } from 'lucide-react'
 import { useAIChat } from '@/hooks/use-ai-chat'
-import { AI_MODEL_LIST } from '@/utils/ai-models'
+import { useChatSessions } from '@/hooks/use-chat-sessions'
+import { AI_MODEL_LIST, AI_MODELS } from '@/utils/ai-models'
 import { useFinance } from '@/hooks/use-finance'
 import { useTTS, DEFAULT_TTS_SETTINGS, type TTSSettings } from '@/hooks/use-tts'
 import { useSpeechToText } from '@/hooks/use-speech-to-text'
@@ -42,12 +43,28 @@ const selectClass =
   'mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-primary/50'
 
 export function AIChat() {
-  const { messages, model, setModel, input, setInput, isLoading, error, send, clear } = useAIChat()
   const { goal, ratePerMinute, todayTotal, todayEarnings, monthEarnings, monthTotal, completedDays, goalHitRate, logs } = useFinance()
   const tts = useTTS()
   const scrollRef = useRef<HTMLDivElement>(null)
   const spokenIdx = useRef(-1)
   const [draft, setDraft] = useState<TTSSettings>(tts.settings ?? DEFAULT_TTS_SETTINGS)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const {
+    sessions,
+    currentSessionId,
+    setCurrentSessionId,
+    isLoading: sessionsLoading,
+    createSession,
+    loadHistory,
+    deleteSession,
+    updateSession,
+  } = useChatSessions()
+
+  const { messages, setMessages, model, setModel, input, setInput, isLoading, error, send, clear } = useAIChat({
+    sessionId: currentSessionId,
+    onSessionCreated: setCurrentSessionId,
+  })
 
   const context = useMemo<ChatContext>(
     () => ({
@@ -114,6 +131,59 @@ export function AIChat() {
     if (tts.dialogOpen) setDraft(tts.settings ?? DEFAULT_TTS_SETTINGS)
   }, [tts.dialogOpen, tts.settings])
 
+  // Cargar el historial de la sesión indicada (marcando como ya leídas las
+  // respuestas para no reproducirlas con TTS al abrir).
+  const openSession = useCallback(
+    async (id: string) => {
+      setCurrentSessionId(id)
+      const msgs = await loadHistory(id)
+      setMessages(msgs)
+      const lastIdx = msgs.reduce((acc, m, i) => (m.role === 'assistant' ? i : acc), -1)
+      spokenIdx.current = lastIdx
+      const sess = sessions.find((s) => s.id === id)
+      if (sess) setModel(sess.model)
+    },
+    [setCurrentSessionId, loadHistory, setMessages, setModel, sessions]
+  )
+
+  const startNewChat = useCallback(async () => {
+    await createSession(model)
+    setMessages([])
+    setError(null)
+    spokenIdx.current = -1
+    setSidebarOpen(false)
+  }, [createSession, model, setMessages])
+
+  const onDeleteSession = useCallback(
+    async (id: string) => {
+      const wasCurrent = id === currentSessionId
+      await deleteSession(id)
+      if (wasCurrent) {
+        setMessages([])
+        setError(null)
+        spokenIdx.current = -1
+      }
+    },
+    [deleteSession, currentSessionId, setMessages]
+  )
+
+  const onModelChange = useCallback(
+    (value: string) => {
+      setModel(value)
+      if (currentSessionId) updateSession(currentSessionId, { model: value })
+    },
+    [currentSessionId, updateSession, setModel]
+  )
+
+  // Carga inicial: una vez lista la lista de sesiones, abre la sesión guardada.
+  const didInitLoad = useRef(false)
+  useEffect(() => {
+    if (didInitLoad.current || sessionsLoading) return
+    didInitLoad.current = true
+    if (currentSessionId) openSession(currentSessionId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionsLoading, currentSessionId])
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -124,153 +194,220 @@ export function AIChat() {
   const canSend = !isLoading && input.trim().length > 0
 
   return (
-    <section className="glass-panel flex h-full flex-col p-0">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary">
-            <Bot className="size-5" />
-          </div>
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Assistant</p>
-            <h2 className="mt-1 text-lg font-semibold">AI chat</h2>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-primary/50"
-          >
-            {AI_MODEL_LIST.map((m) => (
-              <option key={m.key} value={m.key} className="bg-card text-foreground">
-                {m.name}
-              </option>
-            ))}
-          </select>
+    <section className="relative flex h-full min-h-0">
+      {/* Sidebar de sesiones */}
+      <aside
+        className={`absolute inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 backdrop-blur-xl transition-transform md:static md:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Chats</p>
           <button
-            onClick={clear}
-            aria-label="Clear chat"
-            className="grid size-9 place-items-center rounded-lg border border-white/10 text-muted-foreground transition-colors hover:text-foreground"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Cerrar"
+            className="grid size-7 place-items-center rounded-md text-muted-foreground hover:text-foreground md:hidden"
           >
-            <Trash2 className="size-4" />
+            <X className="size-4" />
           </button>
         </div>
-      </div>
-
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-primary/15 text-primary">
-                <Bot className="size-6" />
-              </div>
-              <p className="text-lg font-semibold">¿En qué puedo ayudarte hoy?</p>
-              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                Pregúntame sobre tu progreso, ganancias o pídeme consejos para mantenerte hidratado y combatir la fatiga.
-              </p>
-            </div>
-          )}
-
-          {messages.map((m, i) => {
-            if (m.role === 'user') {
+        <div className="p-3">
+          <button
+            onClick={startNewChat}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <Plus className="size-4" /> Nuevo chat
+          </button>
+        </div>
+        <div className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+          {sessions.length === 0 ? (
+            <p className="px-2 py-6 text-center text-xs text-muted-foreground">Aún no hay conversaciones.</p>
+          ) : (
+            sessions.map((s) => {
+              const active = s.id === currentSessionId
               return (
-                <div key={i} className="flex justify-end">
-                  <div className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-sm bg-primary px-4 py-2.5 text-[15px] leading-relaxed text-primary-foreground">
-                    {m.content}
+                <div
+                  key={s.id}
+                  className={`group flex items-start gap-2 rounded-xl px-3 py-2.5 transition-colors ${
+                    active ? 'bg-primary/10' : 'hover:bg-white/5'
+                  }`}
+                >
+                  <button onClick={() => { openSession(s.id); setSidebarOpen(false) }} className="min-w-0 flex-1 text-left">
+                    <p className={`truncate text-sm ${active ? 'text-primary' : 'text-foreground'}`}>{s.title}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                      {AI_MODELS[s.model]?.name ?? s.model}
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => onDeleteSession(s.id)}
+                    aria-label="Borrar historial"
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </aside>
+
+      {/* Columna del chat */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Abrir chats"
+              className="grid size-9 place-items-center rounded-xl border border-white/10 text-muted-foreground lg:hidden"
+            >
+              <Menu className="size-5" />
+            </button>
+            <div className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary">
+              <Bot className="size-5" />
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Assistant</p>
+              <h2 className="mt-1 text-lg font-semibold">AI chat</h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={model}
+              onChange={(e) => onModelChange(e.target.value)}
+              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-primary/50"
+            >
+              {AI_MODEL_LIST.map((m) => (
+                <option key={m.key} value={m.key} className="bg-card text-foreground">
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={clear}
+              aria-label="Clear chat"
+              className="grid size-9 place-items-center rounded-lg border border-white/10 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="mb-4 grid size-12 place-items-center rounded-2xl bg-primary/15 text-primary">
+                  <Bot className="size-6" />
+                </div>
+                <p className="text-lg font-semibold">¿En qué puedo ayudarte hoy?</p>
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                  Pregúntame sobre tu progreso, ganancias o pídeme consejos para mantenerte hidratado y combatir la fatiga.
+                </p>
+              </div>
+            )}
+
+            {messages.map((m, i) => {
+              if (m.role === 'user') {
+                return (
+                  <div key={i} className="flex justify-end">
+                    <div className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-sm bg-primary px-4 py-2.5 text-[15px] leading-relaxed text-primary-foreground">
+                      {m.content}
+                    </div>
+                  </div>
+                )
+              }
+              return (
+                <div key={i} className="flex gap-3">
+                  <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
+                    <Bot className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {m.content === '' && isLoading ? (
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Markdown content={m.content} />
+                    )}
                   </div>
                 </div>
               )
-            }
-            return (
-              <div key={i} className="flex gap-3">
-                <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
-                  <Bot className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  {m.content === '' && isLoading ? (
-                    <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    <Markdown content={m.content} />
-                  )}
-                </div>
+            })}
+
+            {error && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {/image|imagen|not support|unsupported/i.test(error)
+                  ? 'Tu modelo actual no admite imágenes. Quita la imagen o usa un modelo de solo texto.'
+                  : error}
               </div>
-            )
-          })}
-
-          {error && (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {/image|imagen|not support|unsupported/i.test(error)
-                ? 'Tu modelo actual no admite imágenes. Quita la imagen o usa un modelo de solo texto.'
-                : error}
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="px-4 pb-5">
-        <div className="mx-auto w-full max-w-3xl">
-          <div className="relative flex items-end gap-2 rounded-3xl border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-colors focus-within:border-primary/50">
-            <button
-              type="button"
-              onClick={stt.toggle}
-              disabled={isLoading}
-              aria-label={stt.armed ? 'Detener dictado' : 'Dictar con voz'}
-              className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-40 ${
-                stt.listening
-                  ? 'animate-pulse bg-destructive text-destructive-foreground'
-                  : stt.armed
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Waves className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={tts.toggle}
-              aria-label={tts.enabled ? 'Desactivar voz' : 'Activar voz'}
-              className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
-                tts.enabled ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tts.enabled ? <Mic className="size-4" /> : <MicOff className="size-4" />}
-            </button>
-            {tts.enabled && (
+        <div className="px-4 pb-5">
+          <div className="mx-auto w-full max-w-3xl">
+            <div className="relative flex items-end gap-2 rounded-3xl border border-white/10 bg-white/[0.04] px-3 py-2.5 transition-colors focus-within:border-primary/50">
               <button
                 type="button"
-                onClick={() => tts.setDialogOpen(true)}
-                aria-label="Configurar voz"
-                className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                onClick={stt.toggle}
+                disabled={isLoading}
+                aria-label={stt.armed ? 'Detener dictado' : 'Dictar con voz'}
+                className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors disabled:opacity-40 ${
+                  stt.listening
+                    ? 'animate-pulse bg-destructive text-destructive-foreground'
+                    : stt.armed
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <Settings2 className="size-4" />
+                <Waves className="size-4" />
               </button>
-            )}
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              rows={1}
-              placeholder="Escribe un mensaje..."
-              className="max-h-40 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground"
-            />
-            <button
-              onClick={() => send(context)}
-              disabled={!canSend}
-              aria-label="Enviar"
-              className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
-            >
-              {isLoading ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
-            </button>
+              <button
+                type="button"
+                onClick={tts.toggle}
+                aria-label={tts.enabled ? 'Desactivar voz' : 'Activar voz'}
+                className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
+                  tts.enabled ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {tts.enabled ? <Mic className="size-4" /> : <MicOff className="size-4" />}
+              </button>
+              {tts.enabled && (
+                <button
+                  type="button"
+                  onClick={() => tts.setDialogOpen(true)}
+                  aria-label="Configurar voz"
+                  className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Settings2 className="size-4" />
+                </button>
+              )}
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={onKeyDown}
+                rows={1}
+                placeholder="Escribe un mensaje..."
+                className="max-h-40 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                onClick={() => send(context)}
+                disabled={!canSend}
+                aria-label="Enviar"
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
+              >
+                {isLoading ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
+              </button>
+            </div>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              {tts.enabled ? '🔊 Voz activada · ' : ''}Enter para enviar, Shift+Enter para salto de línea.
+            </p>
           </div>
-          <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            {tts.enabled ? '🔊 Voz activada · ' : ''}Enter para enviar, Shift+Enter para salto de línea.
-          </p>
         </div>
       </div>
 
       {tts.dialogOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
           onClick={() => tts.setDialogOpen(false)}
         >
           <div

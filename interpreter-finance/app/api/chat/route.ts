@@ -2,15 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AI_MODELS } from '@/utils/ai-models'
 import { PROVIDERS, getProviderApiKey } from '@/utils/ai-providers'
 import { buildSystemPrompt, type ChatContext } from '@/utils/ai-system-prompt'
+import { supabaseServer, getUserIdFromRequest } from '@/lib/supabase-server'
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = await getUserIdFromRequest(request)
+    if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
+
     const body = await request.json()
     const modelKey = String(body.model ?? '')
     const messages = (body.messages ?? []) as ChatMessage[]
     const context = (body.context ?? null) as ChatContext | null
+    let sessionId = typeof body.sessionId === 'string' ? body.sessionId : ''
 
     const model = AI_MODELS[modelKey]
     if (!model) {
@@ -23,6 +28,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faltan mensajes.' }, { status: 400 })
     }
 
+    // Resolver la sesión: si se envió un id válido la usamos, si no creamos una nueva.
+    if (sessionId) {
+      const { data: sess } = await supabaseServer
+        .from('chat_sessions')
+        .select('id, user_id')
+        .eq('id', sessionId)
+        .single()
+      if (!sess || sess.user_id !== userId) sessionId = ''
+    }
+
+    let createdSession = false
+    if (!sessionId) {
+      const firstUser = [...messages].reverse().find((m) => m.role === 'user')
+      const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
+      const { data: sess, error: sessErr } = await supabaseServer
+        .from('chat_sessions')
+        .insert([{ user_id: userId, title, model: modelKey }])
+        .select('id')
+        .single()
+      if (sessErr || !sess) {
+        return NextResponse.json({ error: 'No se pudo crear la sesión.' }, { status: 500 })
+      }
+      sessionId = sess.id
+      createdSession = true
+    }
+
+    // Posición base para los mensajes nuevos de esta ronda.
+    const { count } = await supabaseServer
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', sessionId)
+    const basePos = count ?? 0
+
+    // Guardar el mensaje del usuario (el último del array).
+    const userMsg = messages[messages.length - 1]
+    await supabaseServer.from('chat_messages').insert([
+      {
+        session_id: sessionId,
+        user_id: userId,
+        role: userMsg.role,
+        content: userMsg.content,
+        position: basePos + 1,
+      },
+    ])
+
     const provider = PROVIDERS[model.apiProvider]
     const apiKey = getProviderApiKey(model.apiProvider)
     if (!apiKey) {
@@ -32,8 +82,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Inyectamos el system prompt con el contexto del usuario (goal,
-    // earnings, daily logs) delante de los mensajes del chat.
     const systemPrompt = context ? buildSystemPrompt(context) : ''
     const fullMessages: ChatMessage[] = systemPrompt
       ? [{ role: 'system', content: systemPrompt }, ...messages]
@@ -62,9 +110,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Reenviamos el stream del provider al cliente. El provider (NVIDIA,
-    // OpenAI-compatible) devuelve SSE: lineas "data: {...}" con deltas de
-    // contenido. Extraemos solo el texto y lo emitimos como stream de texto.
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
 
@@ -72,6 +117,7 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         const reader = response.body!.getReader()
         let buffer = ''
+        let acc = ''
         try {
           while (true) {
             const { done, value } = await reader.read()
@@ -89,7 +135,10 @@ export async function POST(request: NextRequest) {
               try {
                 const json = JSON.parse(payload)
                 const delta: string = json?.choices?.[0]?.delta?.content ?? ''
-                if (delta) controller.enqueue(encoder.encode(delta))
+                if (delta) {
+                  acc += delta
+                  controller.enqueue(encoder.encode(delta))
+                }
               } catch {
                 // ignora lineas no parseables
               }
@@ -101,6 +150,26 @@ export async function POST(request: NextRequest) {
           )
         } finally {
           controller.close()
+          // Persistir la respuesta del asistente y mantener la sesión al día.
+          try {
+            if (acc.trim()) {
+              await supabaseServer.from('chat_messages').insert([
+                {
+                  session_id: sessionId,
+                  user_id: userId,
+                  role: 'assistant',
+                  content: acc,
+                  position: basePos + 2,
+                },
+              ])
+            }
+            await supabaseServer
+              .from('chat_sessions')
+              .update({ model: modelKey, updated_at: new Date().toISOString() })
+              .eq('id', sessionId)
+          } catch {
+            // error de persistencia no debe romper el stream ya enviado
+          }
         }
       },
     })
@@ -110,6 +179,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'X-Model': model.id,
+        'X-Session-Id': sessionId,
       },
     })
   } catch (error) {
