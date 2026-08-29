@@ -187,17 +187,30 @@ export function GoalCard() {
 
 export function GoalSettings() {
   const { goal: hookGoal, workHours: hookWorkHours, ratePerMinute: hookRatePerMinute, saveGoal } = useFinance()
-  const [goal, setGoal] = useState(hookGoal)
-  const [workHours, setWorkHoursLocal] = useState(hookWorkHours)
-  const [ratePerMinute, setRatePerMinute] = useState(hookRatePerMinute)
+  // Use string state so the fields can be cleared and typed freely (e.g. 24, 50)
+  // without snapping back to 0 or being capped.
+  const [goal, setGoal] = useState(String(hookGoal))
+  const [workHours, setWorkHoursLocal] = useState(String(hookWorkHours))
+  const [ratePerMinute, setRatePerMinute] = useState(String(hookRatePerMinute))
 
   // Sync local state when hook loads data from Supabase
-  useEffect(() => { setGoal(hookGoal) }, [hookGoal])
-  useEffect(() => { setWorkHoursLocal(hookWorkHours) }, [hookWorkHours])
-  useEffect(() => { setRatePerMinute(hookRatePerMinute) }, [hookRatePerMinute])
+  useEffect(() => { setGoal(String(hookGoal)) }, [hookGoal])
+  useEffect(() => { setWorkHoursLocal(String(hookWorkHours)) }, [hookWorkHours])
+  useEffect(() => { setRatePerMinute(String(hookRatePerMinute)) }, [hookRatePerMinute])
 
-  const minutesPerHour = getMinutesPerHour(goal, workHours)
-  const wholeMinutesPerHour = getWholeMinutesPerHour(goal, workHours)
+  const numGoal = Number(goal) || 0
+  const numWorkHours = Number(workHours) || 0
+  const numRate = Number(ratePerMinute) || 0
+
+  const minutesPerHour = getMinutesPerHour(numGoal, numWorkHours)
+  const wholeMinutesPerHour = getWholeMinutesPerHour(numGoal, numWorkHours)
+
+  const clearAll = () => {
+    setGoal('')
+    setWorkHoursLocal('')
+    setRatePerMinute('')
+  }
+
   return (
     <Glass className="p-5">
       <div className="flex items-center justify-between">
@@ -210,18 +223,18 @@ export function GoalSettings() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Goal minutes</span>
-          <input type="number" min="0" step="any" value={goal} onChange={(e) => setGoal(Math.max(0, Number(e.target.value) || 0))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+          <input type="number" min="0" step="any" value={goal} onChange={(e) => setGoal(e.target.value)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
         </label>
         <label className="flex flex-col gap-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Work period</span>
           <div className="flex items-center gap-2">
-            <input type="number" min="0" max="24" step="any" value={workHours} onChange={(e) => setWorkHoursLocal(Math.max(0, Math.min(24, Number(e.target.value) || 0)))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+            <input type="number" min="0" step="any" value={workHours} onChange={(e) => setWorkHoursLocal(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
             <span className="text-xs text-muted-foreground">hours</span>
           </div>
         </label>
         <label className="flex flex-col gap-2 sm:col-span-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rate per minute</span>
-          <input type="number" min="0" step="0.01" value={ratePerMinute} onChange={(e) => setRatePerMinute(Math.max(0, Number(e.target.value) || 0))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+          <input type="number" min="0" step="0.01" value={ratePerMinute} onChange={(e) => setRatePerMinute(e.target.value)} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
         </label>
       </div>
       <div className="mt-5 rounded-xl border border-primary/20 bg-primary/10 p-4">
@@ -231,10 +244,13 @@ export function GoalSettings() {
           <span className="text-sm text-muted-foreground">minutes / hour</span>
         </div>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          For {goal} minutes across {workHours} hours, plan about <span className="font-semibold text-foreground">{wholeMinutesPerHour} minutes every hour</span>.
+          For {numGoal} minutes across {numWorkHours} hours, plan about <span className="font-semibold text-foreground">{wholeMinutesPerHour} minutes every hour</span>.
         </p>
       </div>
-      <button onClick={() => saveGoal(goal, workHours, ratePerMinute)} className="mt-5 w-full rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
+      <div className="mt-5 flex gap-2">
+        <button onClick={() => saveGoal(numGoal, numWorkHours, numRate)} className="flex-1 rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
+        <button onClick={clearAll} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>
+      </div>
     </Glass>
   )
 }
