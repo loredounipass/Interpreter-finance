@@ -557,7 +557,7 @@ export function Dashboard() {
         <Sidebar active={active} onNavigate={handleNavigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="min-w-0 flex-1 flex flex-col h-full overflow-y-auto">
           <Header view={active} onMenu={() => setMenuOpen(true)} />
-          <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 lg:p-7">
+          <main className={active === 'AI chat' ? 'w-full flex-1 min-h-0 p-0' : 'mx-auto w-full max-w-[1280px] flex-1 p-4 lg:p-7'}>
             {active !== 'AI chat' && (
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div>

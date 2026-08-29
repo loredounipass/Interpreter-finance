@@ -125,7 +125,7 @@ export function AIChat() {
   const canSend = !isLoading && input.trim().length > 0
 
   return (
-    <section className="glass-panel flex h-[calc(100vh-7rem)] flex-col rounded-2xl p-0">
+    <section className="glass-panel flex h-full flex-col p-0">
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary">
@@ -200,7 +200,9 @@ export function AIChat() {
 
           {error && (
             <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {error}
+              {/image|imagen|not support|unsupported/i.test(error)
+                ? 'Tu modelo actual no admite imágenes. Quita la imagen o usa un modelo de solo texto.'
+                : error}
             </div>
           )}
         </div>
