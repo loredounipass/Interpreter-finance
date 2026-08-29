@@ -150,12 +150,8 @@ export function useFinance() {
   }, [currentMinutes, persistMinutes])
 
   const setMinutes = useCallback((value: number) => {
-    if (value === 0) {
-      persistMinutes(0)
-    } else {
-      setCurrentMinutes(value)
-    }
-  }, [persistMinutes])
+    setCurrentMinutes(value)
+  }, [])
 
   const saveMinutes = useCallback(async () => {
     await persistMinutes(currentMinutes)
