@@ -9,7 +9,9 @@ const CURRENT_KEY = 'ai_current_session'
 export function useChatSessions() {
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [currentSessionId, setCurrentSessionIdState] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  // Inicia en true para que la carga inicial del chat espere a que terminen
+  // de cargar las sesiones antes de abrir la guardada (y restaurar su modelo).
+  const [isLoading, setIsLoading] = useState(true)
 
   const setCurrentSessionId = useCallback((id: string | null) => {
     setCurrentSessionIdState(id)
