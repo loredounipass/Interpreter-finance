@@ -430,7 +430,7 @@ export function AIChat() {
               </button>
             </div>
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              {tts.enabled ? '🔊 Voz activada · ' : ''}Enter para enviar, Shift+Enter para salto de línea.
+              {tts.enabled ? '🔊 Voz activada' : ''}
             </p>
           </div>
         </div>
