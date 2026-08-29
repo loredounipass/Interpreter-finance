@@ -26,6 +26,7 @@ export function useSpeechToText({
   const restartTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const startingRef = useRef(false)
   const finalRef = useRef('')
+  const sentRef = useRef(false)
   const onFinalRef = useRef(onFinal)
   onFinalRef.current = onFinal
   const armedRef = useRef(false)
@@ -52,6 +53,7 @@ export function useSpeechToText({
     // Evita arranques superpuestos (el SO a veces dispara onend/start seguidos).
     if (startingRef.current || listening) return
     finalRef.current = ''
+    sentRef.current = false
     setTranscript('')
     armedRef.current = true
     setArmed(true)
@@ -74,7 +76,11 @@ export function useSpeechToText({
         silenceTimer.current = setTimeout(() => {
           const text = finalRef.current.trim()
           recognition.stop()
-          if (text) onFinalRef.current?.(text)
+          if (text && !sentRef.current) {
+            sentRef.current = true
+            onFinalRef.current?.(text)
+          }
+          finalRef.current = ''
         }, SILENCE_MS)
       }
       setTranscript(finalRef.current + interim)
@@ -92,6 +98,18 @@ export function useSpeechToText({
       setListening(false)
       clearSilence()
       startingRef.current = false
+      // En móvil el SO cierra el reconocimiento tras cada frase, antes de que
+      // venza el timer de silencio. Si aún no se envió el texto acumulado,
+      // lo enviamos aquí para que no se pierda (y no se "borre" del input).
+      if (!blockRef.current && !sentRef.current) {
+        const text = finalRef.current.trim()
+        if (text) {
+          sentRef.current = true
+          onFinalRef.current?.(text)
+        }
+      }
+      finalRef.current = ''
+      sentRef.current = false
       // Dictado continuo: si sigue armado y no esta bloqueado, reiniciar.
       // (En iOS esto fallara por la politica de gesto y quedara apagado hasta
       // un nuevo toque; en Android/desktop se mantiene escuchando.)
