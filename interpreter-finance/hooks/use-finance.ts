@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle } from '@/lib/finance'
+import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle, localToday, localMonth } from '@/lib/finance'
 import type { DailyLog } from '@/lib/finance'
 
 export function useFinance() {
   const [logs, setLogs] = useState<DailyLog[]>([])
   const [goal, setGoal] = useState(goalMinutes)
+  const [workHours, setWorkHours] = useState(defaultWorkHours)
   const [period, setPeriod] = useState<'day' | 'month' | 'year'>('month')
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -28,18 +29,22 @@ export function useFinance() {
         if (logsError) throw logsError
         setLogs(logsData ?? [])
 
-        const today = new Date().toISOString().slice(0, 10)
+        const today = localToday()
         const todayLog = logsData?.find((l) => l.logged_on === today)
         if (todayLog) setCurrentMinutes(todayLog.minutes)
 
         const { data: goalData, error: goalError } = await supabase
           .from('goals')
-          .select('daily_minutes')
+          .select('id, daily_minutes, work_hours')
+          .eq('user_id', session.user.id)
           .eq('is_active', true)
           .single()
 
         if (goalError && goalError.code !== 'PGRST116') throw goalError
-        if (goalData) setGoal(goalData.daily_minutes)
+        if (goalData) {
+          setGoal(goalData.daily_minutes)
+          if (goalData.work_hours) setWorkHours(goalData.work_hours)
+        }
       } catch {
         // ignore
       } finally {
@@ -49,10 +54,13 @@ export function useFinance() {
     fetchData()
   }, [])
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localToday()
 
   const todayLogs = useMemo(() => logs.filter((l) => l.logged_on === today), [logs, today])
-  const monthLogs = useMemo(() => logs.filter((l) => { const d = new Date(l.logged_on); return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear() }), [logs])
+  const monthLogs = useMemo(() => {
+    const currentMonth = localMonth()
+    return logs.filter((l) => l.logged_on.startsWith(currentMonth))
+  }, [logs])
   const { monthTotal, monthAverage, goalHitRate, goalProgress, completedDays } = useMemo(() => computeMonthStats(monthLogs, goal), [monthLogs, goal])
 
   const chartData = useMemo(() => buildChartData(logs, goal), [logs, goal])
@@ -61,7 +69,9 @@ export function useFinance() {
   const weeklyData = useMemo(() => buildWeeklyData(logs, goal), [logs, goal])
 
   const prevMonthTotal = useMemo(() => {
-    const prevMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 7)
+    const now = new Date()
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const prevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`
     return logs.filter((l) => l.logged_on.startsWith(prevMonth)).reduce((sum, l) => sum + l.minutes, 0)
   }, [logs])
 
@@ -77,52 +87,86 @@ export function useFinance() {
 
   const progress = useMemo(() => getProgress(currentMinutes, goal), [currentMinutes, goal])
 
-  const addMinutes = useCallback((value: number) => {
-    setCurrentMinutes((prev) => prev + value)
-  }, [])
-
-  const setMinutes = useCallback((value: number) => {
-    setCurrentMinutes(value)
-  }, [])
-
-  const saveMinutes = useCallback(async () => {
+  const persistMinutes = useCallback(async (newTotal: number) => {
+    const minutesToSave = Number(newTotal.toFixed(2))
+    setCurrentMinutes(minutesToSave)
     setIsSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
-      if (currentMinutes === 0) {
+
+      if (minutesToSave === 0) {
         if (todayLogs.length > 0) {
           const { error } = await supabase.from('daily_logs').delete().eq('id', todayLogs[0].id)
           if (error) throw error
           setLogs((prev) => prev.filter((l) => l.id !== todayLogs[0].id))
         }
       } else if (todayLogs.length > 0) {
-        const { error } = await supabase.from('daily_logs').update({ minutes: currentMinutes, updated_at: new Date().toISOString() }).eq('id', todayLogs[0].id)
+        const { data, error } = await supabase.from('daily_logs').update({ minutes: minutesToSave, updated_at: new Date().toISOString() }).eq('id', todayLogs[0].id).select().single()
         if (error) throw error
+        setLogs((prev) => prev.map((l) => l.id === todayLogs[0].id ? data : l))
       } else {
-        const { data, error } = await supabase.from('daily_logs').insert([{ user_id: session.user.id, logged_on: today, minutes: currentMinutes, note: null }]).select().single()
+        const { data, error } = await supabase.from('daily_logs').insert([{ user_id: session.user.id, logged_on: today, minutes: minutesToSave, note: null }]).select().single()
         if (error) throw error
         setLogs((prev) => [data, ...prev])
       }
-      setCurrentMinutes(0)
-    } catch {
-      // ignore
+    } catch (e: any) {
+      console.error('Save minutes error:', e?.message || String(e))
     } finally {
       setIsSaving(false)
     }
-  }, [currentMinutes, today, todayLogs])
+  }, [currentMinutes, todayLogs, today])
 
-  const saveGoal = useCallback(async (value: number) => {
+  const addMinutes = useCallback((value: number) => {
+    persistMinutes(currentMinutes + value)
+  }, [currentMinutes, persistMinutes])
+
+  const setMinutes = useCallback((value: number) => {
+    if (value === 0) {
+      persistMinutes(0)
+    } else {
+      setCurrentMinutes(value)
+    }
+  }, [persistMinutes])
+
+  const saveMinutes = useCallback(async () => {
+    await persistMinutes(currentMinutes)
+  }, [currentMinutes, persistMinutes])
+
+  const saveGoal = useCallback(async (value: number, hours?: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
-      const { error } = await supabase.from('goals').upsert([{ user_id: session.user.id, daily_minutes: value, work_hours: defaultWorkHours, starts_on: new Date().toISOString().slice(0, 10), is_active: true }])
-      if (error) throw error
-      setGoal(value)
-    } catch {
-      // ignore
+
+      const goalToSave = Number(value.toFixed(2))
+      const hoursToSave = hours ?? workHours
+
+      const { data: existingGoal } = await supabase
+        .from('goals')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('is_active', true)
+        .single()
+
+      if (existingGoal) {
+        const { error } = await supabase
+          .from('goals')
+          .update({ daily_minutes: goalToSave, work_hours: hoursToSave, updated_at: new Date().toISOString() })
+          .eq('id', existingGoal.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('goals')
+          .insert([{ user_id: session.user.id, daily_minutes: goalToSave, work_hours: hoursToSave, starts_on: localToday(), is_active: true }])
+        if (error) throw error
+      }
+
+      setGoal(goalToSave)
+      setWorkHours(hoursToSave)
+    } catch (e: any) {
+      alert('Save goal error: ' + (e?.message || String(e)))
     }
-  }, [])
+  }, [workHours])
 
   const deleteEntry = useCallback(async (id: string) => {
     try {
@@ -160,7 +204,7 @@ export function useFinance() {
   const monthTitle = useMemo(() => getMonthTitle(), [])
 
   return {
-    currentMinutes, minutes: currentMinutes, goal, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
+    currentMinutes, minutes: currentMinutes, goal, workHours, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
     monthTotal, monthAverage, goalHitRate, goalProgress, completedDays, summary, weeklyData: periodData, chartData, calendarDays,
     recentEntries, summaryMessage, weekDelta, greeting, monthTitle, deleteEntry, addEntry, logs,
   }

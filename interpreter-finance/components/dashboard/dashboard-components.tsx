@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ArrowUpRight, BarChart3, CalendarDays, Check, ChevronDown,
   Clock3, Flame, LayoutDashboard, LogOut, Menu, Plus, Settings2,
@@ -119,6 +119,15 @@ export function StatCard({ label, value, note, icon: Icon }: { label: string; va
 
 export function GoalCard() {
   const { currentMinutes, goal, progress, addMinutes, setMinutes, saveMinutes, isSaving } = useFinance()
+  const [draftMins, setDraftMins] = useState('')
+
+  const handleAdd = (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (draftMins && Number(draftMins) > 0) {
+      addMinutes(Number(draftMins))
+      setDraftMins('')
+    }
+  }
   return (
     <Glass className="p-4">
       <div className="flex items-start justify-between">
@@ -127,11 +136,13 @@ export function GoalCard() {
           <h2 className="mt-2 text-xl font-semibold">Keep the momentum</h2>
           <p className="mt-1 text-sm text-muted-foreground">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
-        <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 font-mono text-xs text-primary">{goal} min goal</span>
+        <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 font-mono text-xs text-primary">
+          {goal > 0 ? (goal - currentMinutes > 0 ? `${Number((goal - currentMinutes).toFixed(2))} min remaining` : 'Goal reached! 🎉') : 'No goal set'}
+        </span>
       </div>
       <div className="mt-5 flex items-end justify-between">
         <div>
-          <span className="font-mono text-4xl font-medium">{currentMinutes}</span>
+          <span className="font-mono text-4xl font-medium">{Number(currentMinutes.toFixed(2))}</span>
           <span className="ml-2 text-sm text-muted-foreground">minutes logged</span>
         </div>
         <span className="font-mono text-sm text-primary">{progress}%</span>
@@ -139,11 +150,28 @@ export function GoalCard() {
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.07]">
         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
       </div>
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
         {[15, 30, 45].map((value) => (
-          <button key={value} onClick={() => addMinutes(value)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-muted-foreground hover:border-primary/30 hover:text-primary">+{value} min</button>
+          <button key={value} onClick={() => addMinutes(value)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-muted-foreground hover:border-primary/30 hover:text-primary">
+            +{value}m
+          </button>
         ))}
-        <button onClick={() => setMinutes(0)} className="ml-auto rounded-lg px-3 py-2 text-xs text-muted-foreground">Reset</button>
+        
+        <form onSubmit={handleAdd} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 focus-within:border-primary/50">
+          <span className="text-xs text-muted-foreground">+</span>
+          <input 
+            type="number" 
+            min="0.01" 
+            step="any"
+            placeholder="custom"
+            value={draftMins} 
+            onChange={(e) => setDraftMins(e.target.value)} 
+            className="w-14 bg-transparent font-mono text-xs outline-none placeholder:text-muted-foreground/30" 
+          />
+          <button type="submit" disabled={!draftMins} className="px-2 text-xs font-semibold text-primary disabled:opacity-50">Add</button>
+        </form>
+
+        <button onClick={() => setMinutes(0)} className="ml-auto rounded-lg px-3 py-2 text-xs text-muted-foreground hover:text-foreground">Reset</button>
         <button onClick={saveMinutes} disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
           {isSaving ? 'Saving...' : 'Save log'}
         </button>
@@ -153,9 +181,14 @@ export function GoalCard() {
 }
 
 export function GoalSettings() {
-  const { goal: hookGoal, saveGoal } = useFinance()
+  const { goal: hookGoal, workHours: hookWorkHours, saveGoal } = useFinance()
   const [goal, setGoal] = useState(hookGoal)
-  const [workHours, setWorkHours] = useState(defaultWorkHours)
+  const [workHours, setWorkHoursLocal] = useState(hookWorkHours)
+
+  // Sync local state when hook loads data from Supabase
+  useEffect(() => { setGoal(hookGoal) }, [hookGoal])
+  useEffect(() => { setWorkHoursLocal(hookWorkHours) }, [hookWorkHours])
+
   const minutesPerHour = getMinutesPerHour(goal, workHours)
   const wholeMinutesPerHour = getWholeMinutesPerHour(goal, workHours)
   return (
@@ -170,12 +203,12 @@ export function GoalSettings() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Goal minutes</span>
-          <input type="number" min="1" value={goal} onChange={(e) => setGoal(Math.max(1, Number(e.target.value) || 0))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+          <input type="number" min="0.1" step="any" value={goal} onChange={(e) => setGoal(Math.max(0.1, Number(e.target.value) || 0))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
         </label>
         <label className="flex flex-col gap-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Work period</span>
           <div className="flex items-center gap-2">
-            <input type="number" min="1" max="24" value={workHours} onChange={(e) => setWorkHours(Math.max(1, Math.min(24, Number(e.target.value) || 1)))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+            <input type="number" min="0.1" max="24" step="any" value={workHours} onChange={(e) => setWorkHoursLocal(Math.max(0.1, Math.min(24, Number(e.target.value) || 1)))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
             <span className="text-xs text-muted-foreground">hours</span>
           </div>
         </label>
@@ -190,7 +223,7 @@ export function GoalSettings() {
           For {goal} minutes across {workHours} hours, plan about <span className="font-semibold text-foreground">{wholeMinutesPerHour} minutes every hour</span>.
         </p>
       </div>
-      <button onClick={() => saveGoal(goal)} className="mt-5 w-full rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
+      <button onClick={() => saveGoal(goal, workHours)} className="mt-5 w-full rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
     </Glass>
   )
 }
@@ -203,17 +236,21 @@ export function ActivityList() {
         <div><Eyebrow>Recent activity</Eyebrow><h2 className="mt-1 text-lg font-semibold">Latest logs</h2></div>
         <button className="flex items-center gap-1 text-xs text-primary">View all <ArrowUpRight className="size-3.5" /></button>
       </div>
-      <div className="mt-5 flex flex-col gap-1">
-        {recentEntries.map((entry, i) => (
-          <div key={entry.date + i} className="flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-white/[0.04]">
-            <div className="grid size-9 place-items-center rounded-lg bg-primary/15 text-primary"><Clock3 className="size-4" /></div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{entry.note}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{entry.date}</p>
+      <div className="mt-5 flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1">
+        {recentEntries.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No practice logged yet.</p>
+        ) : (
+          recentEntries.map((entry, i) => (
+            <div key={entry.date + i} className="flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-white/[0.04]">
+              <div className="grid size-9 place-items-center rounded-lg bg-primary/15 text-primary"><Clock3 className="size-4" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{entry.note}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{entry.date}</p>
+              </div>
+              <span className="font-mono text-sm">{entry.minutes}m</span>
             </div>
-            <span className="font-mono text-sm">{entry.minutes}m</span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </Glass>
   )
@@ -258,7 +295,7 @@ function Operations() {
   return (
     <>
       <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
-        <StatCard label="Minutes logged today" value={`${currentMinutes}m`} note={`of ${goal} minute goal`} icon={Clock3} />
+        <StatCard label="Minutes logged today" value={`${Number(currentMinutes.toFixed(2))}m`} note={goal > 0 ? (goal - currentMinutes > 0 ? `${Number((goal - currentMinutes).toFixed(2))}m left` : 'Completed') : 'No goal set'} icon={Clock3} />
         <StatCard label="Monthly total" value={formatMinutes(monthTotal)} note={`${weekDelta} vs last month`} icon={Target} />
         <StatCard label="Goal completion" value={`${goalHitRate}%`} note={`${completedDays} of ${daysInMonth} days`} icon={Check} />
         <StatCard label="Current streak" value={`${summary.streak}d`} note="Keep it going!" icon={Flame} />

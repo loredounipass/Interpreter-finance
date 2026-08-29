@@ -42,10 +42,27 @@ export type CalendarDay = { day: number; minutes: number }
 export type RecentEntry = { date: string; minutes: number; note: string }
 export type Summary = { total: string; average: string; rate: string; streak: number }
 
-export const formatMinutes = (minutes: number) => `${Math.floor(minutes / 60)}h ${minutes % 60}m`
+export const formatMinutes = (minutes: number) => {
+  const h = Math.floor(minutes / 60)
+  const m = Number((minutes % 60).toFixed(2))
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
+}
 export const defaultWorkHours = 15
-export const goalMinutes = 60
+export const goalMinutes = 0
 export const defaultGoal = { minutes: 400, label: 'Daily interpretation goal' }
+
+/** Returns today's date as YYYY-MM-DD in LOCAL timezone (not UTC) */
+export function localToday() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Returns current month as YYYY-MM in LOCAL timezone */
+export function localMonth() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
 export function getMinutesPerHour(goal: number, workHours = defaultWorkHours) {
   if (workHours <= 0) return 0
@@ -58,6 +75,7 @@ export function getWholeMinutesPerHour(goal: number, workHours = defaultWorkHour
 }
 
 export function getProgress(minutes: number, goal = goalMinutes) {
+  if (goal === 0) return minutes > 0 ? 100 : 0
   return Math.min(Math.round((minutes / goal) * 100), 100)
 }
 
@@ -70,8 +88,9 @@ export function getMonthLabel() {
   return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date())
 }
 
-export function monthName() {
-  return new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date())
+export function monthName(monthIndex?: number) {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  return months[monthIndex ?? new Date().getMonth()]
 }
 
 export function getCurrentDate() {
@@ -108,32 +127,48 @@ export function computeMonthStats(logs: DailyLog[], goal: number) {
   const monthTotal = logs.reduce((sum, l) => sum + l.minutes, 0)
   const days = logs.length || 1
   const monthAverage = Math.round(monthTotal / days)
-  const completedDays = logs.filter((l) => l.minutes >= goal).length
+  const completedDays = logs.filter((l) => goal > 0 ? l.minutes >= goal : l.minutes > 0).length
   const goalHitRate = logs.length > 0 ? Math.round((completedDays / logs.length) * 100) : 0
-  const goalProgress = logs.length > 0 ? Math.round((monthTotal / (goal * logs.length)) * 100) : 0
+  const goalProgress = (logs.length > 0 && goal > 0) ? Math.round((monthTotal / (goal * logs.length)) * 100) : (monthTotal > 0 ? 100 : 0)
   return { monthTotal, monthAverage, goalHitRate, goalProgress, completedDays }
 }
 
+function parseLocalDate(dateStr: string) {
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
 export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
-  return logs
-    .filter((l) => { const d = new Date(l.logged_on); return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear() })
-    .map((l) => ({ day: new Date(l.logged_on).getDate(), minutes: l.minutes, goal }))
-    .sort((a, b) => a.day - b.day)
+  const recentLogs = [...logs].slice(0, 14).reverse()
+  
+  const points = recentLogs.map((l) => ({
+    day: parseLocalDate(l.logged_on).getDate(),
+    minutes: l.minutes,
+    goal
+  }))
+
+  if (points.length === 1) {
+    const d = parseLocalDate(recentLogs[0].logged_on)
+    d.setDate(d.getDate() - 1)
+    points.unshift({ day: d.getDate(), minutes: 0, goal })
+  } else if (points.length === 0) {
+    points.push({ day: new Date().getDate(), minutes: 0, goal })
+  }
+
+  return points
 }
 
 export function buildCalendarData(logs: DailyLog[]): CalendarDay[] {
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-  const logMap = new Map(logs.map((l) => [new Date(l.logged_on).getDate(), l.minutes]))
+  const logMap = new Map(logs.map((l) => [parseLocalDate(l.logged_on).getDate(), l.minutes]))
   return Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, minutes: logMap.get(i + 1) ?? 0 }))
 }
 
 export function buildWeeklyData(logs: DailyLog[], goal: number): WeekData[] {
   const weeks: Record<string, { actual: number; goal: number }> = {}
   logs.forEach((l) => {
-    const d = new Date(l.logged_on)
-    const startOfWeek = new Date(d)
-    startOfWeek.setDate(d.getDate() - d.getDay())
-    const key = `W${Math.ceil((startOfWeek.getTime() + startOfWeek.getDate()) / 7)}`
+    const d = parseLocalDate(l.logged_on)
+    const key = `W${Math.ceil(d.getDate() / 7)}`
     if (!weeks[key]) weeks[key] = { actual: 0, goal }
     weeks[key].actual += l.minutes
   })
@@ -141,17 +176,19 @@ export function buildWeeklyData(logs: DailyLog[], goal: number): WeekData[] {
 }
 
 export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
-  const today = new Date().toISOString().slice(0, 10)
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  const today = localToday()
+  const yd = new Date()
+  yd.setDate(yd.getDate() - 1)
+  const yesterday = `${yd.getFullYear()}-${String(yd.getMonth() + 1).padStart(2, '0')}-${String(yd.getDate()).padStart(2, '0')}`
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   return logs
     .sort((a, b) => b.logged_on.localeCompare(a.logged_on))
-    .slice(0, 6)
     .map((l) => {
-      if (l.logged_on === today) return { date: 'Today, ' + monthName(), minutes: l.minutes, note: l.note ?? '' }
-      if (l.logged_on === yesterday) return { date: 'Yesterday, ' + monthName(), minutes: l.minutes, note: l.note ?? '' }
-      const d = new Date(l.logged_on)
-      return { date: `${dayNames[d.getDay()]}, ${monthName()} ${d.getDate()}`, minutes: l.minutes, note: l.note ?? '' }
+      const note = l.note || 'Daily practice'
+      if (l.logged_on === today) return { date: 'Today, ' + monthName(), minutes: l.minutes, note }
+      if (l.logged_on === yesterday) return { date: 'Yesterday, ' + monthName(), minutes: l.minutes, note }
+      const d = parseLocalDate(l.logged_on)
+      return { date: `${dayNames[d.getDay()]}, ${monthName(d.getMonth())} ${d.getDate()}`, minutes: l.minutes, note }
     })
 }
 
@@ -216,7 +253,7 @@ export const goalLabel = `${goalMinutes} min / day`
 export const isValidMinutes = (value: number) => Number.isFinite(value) && value >= 0 && value <= 1440
 export const normalizeMinutes = (value: number) => Math.round(Math.max(0, Math.min(value, 1440)))
 export const percentageLabel = (value: number) => `${Math.round(value)}%`
-export const dateKey = (date: Date) => date.toISOString().slice(0, 10)
+export const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 export function sumMinutes(entries: FinanceEntry[]) { return entries.reduce((sum, item) => sum + item.minutes, 0) }
 export function averageMinutes(entries: FinanceEntry[]) { return entries.length ? Math.round(sumMinutes(entries) / entries.length) : 0 }
 export function hitRate(entries: FinanceEntry[], goal = goalMinutes) { return entries.length ? Math.round((entries.filter((item) => item.minutes >= goal).length / entries.length) * 100) : 0 }
