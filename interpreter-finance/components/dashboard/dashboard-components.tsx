@@ -125,7 +125,26 @@ export function StatCard({ label, value, note, icon: Icon, large = false, size }
 
 export function GoalCard() {
   const { currentMinutes, goal, progress, addMinutes, setMinutes, saveMinutes, isSaving } = useFinance()
+  const toast = useToast()
   const [draftMins, setDraftMins] = useState('')
+
+  const handleSave = async () => {
+    const saved = Number(currentMinutes.toFixed(2))
+    await saveMinutes()
+    if (goal > 0 && saved >= goal) {
+      toast({
+        title: 'Goal reached! 🎉',
+        description: `You hit your ${goal} minute goal.`,
+        variant: 'success',
+      })
+    } else {
+      toast({
+        title: 'Log saved',
+        description: saved > 0 ? `${saved} minutes logged for today.` : undefined,
+        variant: 'info',
+      })
+    }
+  }
 
   const handleAdd = (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -176,7 +195,7 @@ export function GoalCard() {
           <button type="submit" disabled={!draftMins} className="px-2 text-xs font-semibold text-primary disabled:opacity-50">Add</button>
         </form>
 
-        <button onClick={saveMinutes} disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
+        <button onClick={handleSave} disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
           {isSaving ? 'Saving...' : 'Save log'}
         </button>
         <button onClick={() => setMinutes(0)} className="ml-auto rounded-lg px-3 py-2 text-xs text-muted-foreground hover:text-foreground">Reset</button>
@@ -187,6 +206,7 @@ export function GoalCard() {
 
 export function GoalSettings() {
   const { goal: hookGoal, workHours: hookWorkHours, ratePerMinute: hookRatePerMinute, saveGoal } = useFinance()
+  const toast = useToast()
   // Use string state so the fields can be cleared and typed freely (e.g. 24, 50)
   // without snapping back to 0 or being capped.
   const [goal, setGoal] = useState(String(hookGoal))
@@ -209,6 +229,15 @@ export function GoalSettings() {
     setGoal('')
     setWorkHoursLocal('')
     setRatePerMinute('')
+  }
+
+  const handleSaveGoal = async () => {
+    await saveGoal(numGoal, numWorkHours, numRate)
+    toast({
+      title: 'Goal updated',
+      description: `Daily target set to ${numGoal} minutes.`,
+      variant: 'success',
+    })
   }
 
   return (
@@ -248,7 +277,7 @@ export function GoalSettings() {
         </p>
       </div>
       <div className="mt-5 flex gap-2">
-        <button onClick={() => saveGoal(numGoal, numWorkHours, numRate)} className="flex-1 rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
+        <button onClick={handleSaveGoal} className="flex-1 rounded-lg border border-primary/25 bg-primary/10 py-2.5 text-xs font-semibold text-primary">Update daily goal</button>
         <button onClick={clearAll} className="rounded-lg border border-white/10 px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground">Clear</button>
       </div>
     </Glass>
