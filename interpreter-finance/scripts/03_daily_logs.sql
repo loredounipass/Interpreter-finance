@@ -15,7 +15,7 @@ create table if not exists public.daily_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   logged_on date not null default current_date,
-  minutes integer not null check (minutes > 0),
+  minutes numeric not null check (minutes >= 0),
   note text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
