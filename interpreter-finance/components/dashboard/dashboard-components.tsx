@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import {
   ArrowUpRight, BarChart3, CalendarDays, Check, ChevronDown,
-  Clock3, Flame, LayoutDashboard, Menu, Plus, Settings2,
+  Clock3, Flame, LayoutDashboard, LogOut, Menu, Plus, Settings2,
   Target, X,
 } from 'lucide-react'
 import { ProgressChart } from './progress-chart'
 import { useFinance } from '@/hooks/use-finance'
+import { useAuth } from '@/hooks/use-auth'
 import {
   getMinutesPerHour, getWholeMinutesPerHour,
   goalMinutes, defaultWorkHours,
@@ -59,27 +60,43 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
         <div>
           <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Manage</p>
           <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-white/5"><Settings2 className="size-4" />Settings</button>
+          <SignOutButton />
         </div>
       </nav>
     </aside>
   )
 }
 
+function SignOutButton() {
+  const { signOut } = useAuth()
+  return (
+    <button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-red-500/10 hover:text-red-400">
+      <LogOut className="size-4" />Sign out
+    </button>
+  )
+}
+
 export function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
+  const { user } = useAuth()
+  const firstName = user?.first_name ?? ''
+  const initials = `${user?.first_name?.[0] ?? ''}${user?.last_name?.[0] ?? ''}`.toUpperCase()
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
   return (
     <header className="flex items-center justify-between border-b border-white/10 px-5 py-4 lg:px-10">
       <div className="flex items-center gap-3">
         <button className="lg:hidden" onClick={onMenu} aria-label="Open menu"><Menu className="size-5" /></button>
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{view}</p>
-          <h1 className="mt-1 text-lg font-semibold">Good morning, Alex</h1>
+          <h1 className="mt-1 text-lg font-semibold">{greeting}, {firstName}</h1>
         </div>
       </div>
       <div className="flex items-center gap-3">
         <span className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:flex">
           <span className="size-1.5 rounded-full bg-primary" />Synced just now
         </span>
-        <div className="grid size-9 place-items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">AM</div>
+        <div className="grid size-9 place-items-center rounded-full border border-primary/30 bg-primary/10 text-xs font-semibold text-primary">{initials}</div>
       </div>
     </header>
   )
@@ -236,14 +253,15 @@ export function MonthlyChart() {
 }
 
 function Operations() {
-  const { currentMinutes, goal, monthTotal, goalHitRate, completedDays, summary } = useFinance()
+  const { currentMinutes, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta } = useFinance()
+  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   return (
     <>
       <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
         <StatCard label="Minutes logged today" value={`${currentMinutes}m`} note={`of ${goal} minute goal`} icon={Clock3} />
-        <StatCard label="Monthly total" value={formatMinutes(monthTotal)} note="+12.4% vs last month" icon={Target} />
-        <StatCard label="Goal completion" value={`${goalHitRate}%`} note={`${completedDays} of 29 days`} icon={Check} />
-        <StatCard label="Current streak" value={`${summary.streak}d`} note="Best streak: 12 days" icon={Flame} />
+        <StatCard label="Monthly total" value={formatMinutes(monthTotal)} note={`${weekDelta} vs last month`} icon={Target} />
+        <StatCard label="Goal completion" value={`${goalHitRate}%`} note={`${completedDays} of ${daysInMonth} days`} icon={Check} />
+        <StatCard label="Current streak" value={`${summary.streak}d`} note="Keep it going!" icon={Flame} />
       </div>
       <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.8fr)]">
         <MonthlyChart />
@@ -265,7 +283,7 @@ function DailyLog() {
 }
 
 function Goals() {
-  const { goal } = useFinance()
+  const { goal, goalHitRate, summary } = useFinance()
   return (
     <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
       <GoalSettings />
@@ -274,8 +292,8 @@ function Goals() {
         <h2 className="mt-1 text-xl font-semibold">Your target, in context</h2>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           <StatCard label="Daily goal" value={`${goal}m`} note="Current target" icon={Target} />
-          <StatCard label="Hit rate" value="62%" note="This month" icon={Check} />
-          <StatCard label="Best streak" value="12d" note="Personal best" icon={Flame} />
+          <StatCard label="Hit rate" value={`${goalHitRate}%`} note="This month" icon={Check} />
+          <StatCard label="Current streak" value={`${summary.streak}d`} note="Keep going!" icon={Flame} />
         </div>
       </Glass>
     </div>

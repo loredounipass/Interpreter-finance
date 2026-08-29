@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 type User = {
@@ -17,9 +18,10 @@ type AuthContextType = {
   user: User
   setUser: (user: User) => void
   isLoading: boolean
+  signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, setUser: () => {}, isLoading: true })
+const AuthContext = createContext<AuthContextType>({ user: null, setUser: () => {}, isLoading: true, signOut: async () => {} })
 
 export function useAuth() {
   return useContext(AuthContext)
@@ -28,12 +30,17 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        supabase.from('profiles').select().eq('id', session.user.id).single().then(({ data }) => {
-          setUser(data)
+        supabase.from('profiles').select().eq('id', session.user.id).single().then(({ data, error }) => {
+          if (error || !data) {
+            setUser(null)
+          } else {
+            setUser(data)
+          }
           setIsLoading(false)
         })
       } else {
@@ -43,8 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        supabase.from('profiles').select().eq('id', session.user.id).single().then(({ data }) => {
-          setUser(data)
+        supabase.from('profiles').select().eq('id', session.user.id).single().then(({ data, error }) => {
+          if (error || !data) {
+            setUser(null)
+          } else {
+            setUser(data)
+          }
           setIsLoading(false)
         })
       } else {
@@ -56,5 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { subscription.unsubscribe() }
   }, [])
 
-  return <AuthContext.Provider value={{ user, setUser, isLoading }}>{children}</AuthContext.Provider>
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    router.push('/login')
+    router.refresh()
+  }, [router])
+
+  return <AuthContext.Provider value={{ user, setUser, isLoading, signOut }}>{children}</AuthContext.Provider>
 }

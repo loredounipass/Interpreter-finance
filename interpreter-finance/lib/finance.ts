@@ -109,8 +109,8 @@ export function computeMonthStats(logs: DailyLog[], goal: number) {
   const days = logs.length || 1
   const monthAverage = Math.round(monthTotal / days)
   const completedDays = logs.filter((l) => l.minutes >= goal).length
-  const goalHitRate = Math.round((completedDays / logs.length) * 100)
-  const goalProgress = Math.round((monthTotal / (goal * logs.length)) * 100)
+  const goalHitRate = logs.length > 0 ? Math.round((completedDays / logs.length) * 100) : 0
+  const goalProgress = logs.length > 0 ? Math.round((monthTotal / (goal * logs.length)) * 100) : 0
   return { monthTotal, monthAverage, goalHitRate, goalProgress, completedDays }
 }
 
@@ -184,7 +184,7 @@ export function aggregateByYear(logs: DailyLog[]): Record<string, number> {
   return map
 }
 
- (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' ')
+export const cn = (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' ')
 
 export const dayOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -233,7 +233,7 @@ export function hasHitGoal(minutes: number, goal = goalMinutes) { return minutes
 export type NavItem = typeof navItems[number]
 export type RecentEntryData = RecentEntry
 
-export const empty = null as const
+export const empty = null
 export const placeholder = '—' as const
 export const noOp = () => undefined
 export const isComplete = true

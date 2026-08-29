@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 export function LoginForm() {
   const router = useRouter()
@@ -29,30 +30,60 @@ export function LoginForm() {
           setLoading(false)
           return
         }
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, verify_password: verifyPassword }),
-        })
-        const data = await res.json()
-        if (!res.ok) {
-          setError(data.error ?? 'Registration failed.')
+
+        if (password.length > 64 || password.length < 4) {
+          setError('Password must be between 4 and 64 characters.')
           setLoading(false)
           return
         }
-      } else {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+
+        if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
+          setError('Password must include uppercase, lowercase, number, and special character.')
+          setLoading(false)
+          return
+        }
+
+        // Sign up directly from the browser client so the session is stored here
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { first_name: firstName, last_name: lastName } },
         })
-        const data = await res.json()
-        if (!res.ok) {
-          setError(data.error ?? 'Login failed.')
+
+        if (signUpError) {
+          setError(signUpError.message)
+          setLoading(false)
+          return
+        }
+
+        // Create profile row
+        if (signUpData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ id: signUpData.user.id, first_name: firstName, last_name: lastName, email }])
+
+          if (profileError) {
+            setError(profileError.message)
+            setLoading(false)
+            return
+          }
+        }
+      } else {
+        // Sign in directly from the browser client — this is the critical fix.
+        // The session and tokens are now stored in the browser's Supabase client,
+        // so AuthProvider's onAuthStateChange fires immediately and sets the user.
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (signInError) {
+          setError(signInError.message)
           setLoading(false)
           return
         }
       }
+
       router.push('/')
       router.refresh()
     } catch {
