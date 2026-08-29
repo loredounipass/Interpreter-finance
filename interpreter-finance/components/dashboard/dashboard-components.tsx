@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import {
-  ArrowUpRight, BarChart3, CalendarDays, Check, ChevronDown,
+  ArrowUpRight, BarChart3, CalendarDays, Check,
   Clock3, Flame, LayoutDashboard, LogOut, Menu, Plus, Settings2,
   Target, X, BadgeDollarSign, Wallet, CalendarRange, Trophy,
 } from 'lucide-react'
 import { ProgressChart } from './progress-chart'
 import { useFinance } from '@/hooks/use-finance'
 import { useAuth } from '@/hooks/use-auth'
+import { useToast } from '@/components/ui/app-toast'
 import {
   getMinutesPerHour, getWholeMinutesPerHour,
   goalMinutes, defaultWorkHours,
@@ -313,11 +314,50 @@ export function ActivityList() {
 }
 
 export function CalendarCard() {
+  const { calendarDays, goal } = useFinance()
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const today = now.getDate()
+  const firstWeekday = new Date(year, month, 1).getDay()
+
   return (
     <Glass className="p-5">
       <div className="flex items-center justify-between">
-        <div><Eyebrow>Monthly rhythm</Eyebrow><h2 className="mt-1 text-lg font-semibold">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2></div>
-        <button className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-muted-foreground"><CalendarDays className="size-3.5" />Month <ChevronDown className="size-3" /></button>
+        <div>
+          <Eyebrow>Monthly rhythm</Eyebrow>
+          <h2 className="mt-1 text-lg font-semibold">{now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="size-2 rounded-full bg-primary" />
+          <span>logged</span>
+        </div>
+      </div>
+      <div className="mt-5 grid grid-cols-7 gap-1.5">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <div key={`wd-${i}`} className="text-center font-mono text-[10px] uppercase text-muted-foreground">{d}</div>
+        ))}
+        {Array.from({ length: firstWeekday }).map((_, i) => (
+          <div key={`empty-${i}`} />
+        ))}
+        {calendarDays.map((cell) => {
+          const intensity = goal > 0 ? Math.min(cell.minutes / goal, 1) : cell.minutes > 0 ? 1 : 0
+          const pct = Math.round(15 + intensity * 60)
+          const isToday = cell.day === today
+          const bg = cell.minutes === 0
+            ? 'rgba(255,255,255,0.03)'
+            : `color-mix(in oklab, var(--primary) ${pct}%, transparent)`
+          return (
+            <div
+              key={cell.day}
+              title={cell.minutes > 0 ? `${cell.minutes} min logged` : 'No minutes logged'}
+              style={{ backgroundColor: bg }}
+              className={`grid aspect-square place-items-center rounded-md text-xs ${isToday ? 'font-bold text-primary ring-1 ring-primary' : cell.minutes > 0 ? 'text-primary-foreground' : 'text-muted-foreground'}`}
+            >
+              {cell.day}
+            </div>
+          )
+        })}
       </div>
     </Glass>
   )
@@ -434,7 +474,7 @@ function Earnings() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
-        <StatCard label="Today" value={`$${todayEarnings.toFixed(2)}`} note="Goal met days only" icon={BadgeDollarSign} large />
+        <StatCard label="Today" value={`$${todayEarnings.toFixed(2)}`} note="Goal met days only" icon={BadgeDollarSign} />
         <StatCard label="This week" value={`$${weekEarnings.toFixed(2)}`} note="Last 7 days" icon={CalendarDays} />
         <StatCard label="This month" value={`$${monthEarnings.toFixed(2)}`} note="Current month" icon={CalendarRange} />
         <StatCard label="This year" value={`$${yearEarnings.toFixed(2)}`} note="Current year" icon={BarChart3} />

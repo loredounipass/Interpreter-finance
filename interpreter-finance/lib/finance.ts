@@ -160,8 +160,18 @@ export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
 }
 
 export function buildCalendarData(logs: DailyLog[]): CalendarDay[] {
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-  const logMap = new Map(logs.map((l) => [parseLocalDate(l.logged_on).getDate(), l.minutes]))
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`
+  const logMap = new Map<number, number>()
+  logs.forEach((l) => {
+    if (l.logged_on.startsWith(monthKey)) {
+      const d = parseLocalDate(l.logged_on)
+      logMap.set(d.getDate(), (logMap.get(d.getDate()) ?? 0) + l.minutes)
+    }
+  })
   return Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, minutes: logMap.get(i + 1) ?? 0 }))
 }
 
