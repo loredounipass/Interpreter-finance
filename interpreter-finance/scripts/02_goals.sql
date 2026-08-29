@@ -14,8 +14,8 @@ $$;
 create table if not exists public.goals (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  daily_minutes integer not null check (daily_minutes > 0),
-  work_hours numeric(4,1) not null default 15 check (work_hours > 0 and work_hours <= 24),
+  daily_minutes integer not null check (daily_minutes >= 0),
+  work_hours numeric(4,1) not null default 15 check (work_hours >= 0 and work_hours <= 24),
   starts_on date not null default current_date,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),

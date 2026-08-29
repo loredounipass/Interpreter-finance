@@ -140,7 +140,6 @@ export function GoalCard() {
         <div>
           <Eyebrow>Today&apos;s focus</Eyebrow>
           <h2 className="mt-2 text-xl font-semibold">Keep the momentum</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
         <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 font-mono text-xs text-primary">
           {goal > 0 ? (goal - currentMinutes > 0 ? `${Number((goal - currentMinutes).toFixed(2))} min remaining` : 'Goal reached! 🎉') : 'No goal set'}
@@ -211,18 +210,18 @@ export function GoalSettings() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Goal minutes</span>
-          <input type="number" min="0.1" step="any" value={goal} onChange={(e) => setGoal(Math.max(0.1, Number(e.target.value) || 0))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+          <input type="number" min="0" step="any" value={goal} onChange={(e) => setGoal(Math.max(0, Number(e.target.value) || 0))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
         </label>
         <label className="flex flex-col gap-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Work period</span>
           <div className="flex items-center gap-2">
-            <input type="number" min="0.1" max="24" step="any" value={workHours} onChange={(e) => setWorkHoursLocal(Math.max(0.1, Math.min(24, Number(e.target.value) || 1)))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+            <input type="number" min="0" max="24" step="any" value={workHours} onChange={(e) => setWorkHoursLocal(Math.max(0, Math.min(24, Number(e.target.value) || 0)))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
             <span className="text-xs text-muted-foreground">hours</span>
           </div>
         </label>
         <label className="flex flex-col gap-2 sm:col-span-2">
           <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rate per minute</span>
-          <input type="number" min="0.01" step="0.01" value={ratePerMinute} onChange={(e) => setRatePerMinute(Math.max(0, Number(e.target.value) || 0))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
+          <input type="number" min="0" step="0.01" value={ratePerMinute} onChange={(e) => setRatePerMinute(Math.max(0, Number(e.target.value) || 0))} className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-lg outline-none focus:border-primary/50" />
         </label>
       </div>
       <div className="mt-5 rounded-xl border border-primary/20 bg-primary/10 p-4">
