@@ -32,13 +32,25 @@ export function useAIChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, messages: nextMessages, context }),
       })
-      const data = await res.json()
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}))
         setError(data.error ?? 'Error al enviar el mensaje.')
         setMessages(nextMessages)
-      } else {
-        setMessages([...nextMessages, { role: 'assistant', content: data.content ?? '' }])
+        return
+      }
+
+      // Leemos el stream de texto y vamos actualizando el mensaje del
+      // asistente en tiempo real (efecto de escritura).
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let acc = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        acc += decoder.decode(value, { stream: true })
+        setMessages([...nextMessages, { role: 'assistant', content: acc }])
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))

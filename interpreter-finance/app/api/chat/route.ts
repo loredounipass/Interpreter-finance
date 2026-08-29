@@ -50,10 +50,11 @@ export async function POST(request: NextRequest) {
         messages: fullMessages,
         temperature: body.temperature ?? 0.2,
         max_tokens: body.max_tokens ?? 1024,
+        stream: true,
       }),
     })
 
-    if (!response.ok) {
+    if (!response.ok || !response.body) {
       const text = await response.text()
       return NextResponse.json(
         { error: `Error del provider (${response.status}): ${text.slice(0, 300)}` },
@@ -61,11 +62,56 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data = await response.json()
-    const content: string =
-      data?.choices?.[0]?.message?.content ?? ''
+    // Reenviamos el stream del provider al cliente. El provider (NVIDIA,
+    // OpenAI-compatible) devuelve SSE: lineas "data: {...}" con deltas de
+    // contenido. Extraemos solo el texto y lo emitimos como stream de texto.
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
 
-    return NextResponse.json({ content, model: model.id })
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const reader = response.body!.getReader()
+        let buffer = ''
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+
+            const lines = buffer.split('\n')
+            buffer = lines.pop() ?? ''
+
+            for (const line of lines) {
+              const trimmed = line.trim()
+              if (!trimmed.startsWith('data:')) continue
+              const payload = trimmed.slice(5).trim()
+              if (payload === '[DONE]') continue
+              try {
+                const json = JSON.parse(payload)
+                const delta: string = json?.choices?.[0]?.delta?.content ?? ''
+                if (delta) controller.enqueue(encoder.encode(delta))
+              } catch {
+                // ignora lineas no parseables
+              }
+            }
+          }
+        } catch (e) {
+          controller.enqueue(
+            encoder.encode(`\n[Error de stream: ${e instanceof Error ? e.message : String(e)}]`)
+          )
+        } finally {
+          controller.close()
+        }
+      },
+    })
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'X-Model': model.id,
+      },
+    })
   } catch (error) {
     return NextResponse.json(
       { error: `Error interno: ${error instanceof Error ? error.message : String(error)}` },
