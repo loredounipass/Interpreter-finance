@@ -59,7 +59,7 @@ export function useFinance() {
 
   useEffect(() => {
     const channel = supabase
-      .channel('realtime-finance')
+      .channel(`realtime-finance-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_logs' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, fetchData)
       .subscribe()
