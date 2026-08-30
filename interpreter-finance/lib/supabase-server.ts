@@ -5,20 +5,24 @@ console.log('[supabase-server] module loaded')
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Retorna null si faltan variables (el route degradará gracefulmente).
+let _client: SupabaseClient | null = null
+let _authClient: SupabaseClient | null = null
+
 export function createSupabaseClient(token?: string | null): SupabaseClient | null {
-  console.log('[supabase-server] createSupabaseClient, url=', supabaseUrl ? 'set' : 'MISSING', 'key=', supabaseAnonKey ? 'set' : 'MISSING')
   if (!supabaseUrl || !supabaseAnonKey) return null
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-  })
+  if (token) {
+    if (!_authClient) {
+      _authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: `Bearer ${token}` } } })
+    }
+    return _authClient
+  }
+  if (!_client) {
+    _client = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return _client
 }
 
-// Devuelve el user_id y un cliente autenticado, o null si no hay conexión.
-// Nunca lanza en la importación del módulo.
-export async function getUserIdFromRequest(
-  request: Request
-): Promise<{ userId: string | null; supabase: SupabaseClient | null }> {
+export async function getUserIdFromRequest(request: Request): Promise<{ userId: string | null; supabase: SupabaseClient | null }> {
   const auth = request.headers.get('authorization')
   const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null
   const supabase = createSupabaseClient(token)

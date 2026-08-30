@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
         if (!sess || sess.user_id !== userId) sessionId = ''
       } catch { sessionId = '' }
     }
+    console.log('[chat] sessionId=', sessionId ? 'set' : 'none', 'userId=', userId ? 'set' : 'none')
     if (!sessionId && supabase) {
       try {
         const firstUser = [...messages].reverse().find((m) => m.role === 'user')
@@ -81,14 +82,16 @@ export async function POST(request: NextRequest) {
     const systemPrompt = context ? buildSystemPrompt(context) : ''
     const fullMessages: ChatMessage[] = systemPrompt ? [{ role: 'system', content: systemPrompt }, ...messages] : messages
 
+    console.log('[chat] fetching NVIDIA...')
     const response = await fetch(provider.url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: model.id, messages: fullMessages, temperature: body.temperature ?? 0.2, max_tokens: body.max_tokens ?? 1024, stream: true }),
     })
-
+    console.log('[chat] NVIDIA response ok=', response.ok, 'hasBody=', !!response.body)
     if (!response.ok || !response.body) {
       const text = await response.text()
+      console.log('[chat] NVIDIA error:', response.status, text.slice(0, 200))
       return NextResponse.json({ error: `Error del provider (${response.status}): ${text.slice(0, 300)}` }, { status: 502 })
     }
 
