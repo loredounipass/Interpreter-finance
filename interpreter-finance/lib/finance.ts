@@ -142,18 +142,23 @@ function parseLocalDate(dateStr: string) {
 export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
   const recentLogs = [...logs].slice(0, 14).reverse()
   
+  // Check if today's goal has been reached
+  const today = localToday()
+  const todayLog = logs.find((l) => l.logged_on === today)
+  const goalReached = todayLog && todayLog.minutes >= goal && goal > 0
+  
   const points = recentLogs.map((l) => ({
     day: parseLocalDate(l.logged_on).getDate(),
-    minutes: l.minutes,
-    goal
+    minutes: goalReached ? 0 : l.minutes,
+    goal: goalReached ? 0 : goal
   }))
 
   if (points.length === 1) {
     const d = parseLocalDate(recentLogs[0].logged_on)
     d.setDate(d.getDate() - 1)
-    points.unshift({ day: d.getDate(), minutes: 0, goal })
+    points.unshift({ day: d.getDate(), minutes: goalReached ? 0 : 0, goal: goalReached ? 0 : goal })
   } else if (points.length === 0) {
-    points.push({ day: new Date().getDate(), minutes: 0, goal })
+    points.push({ day: new Date().getDate(), minutes: goalReached ? 0 : 0, goal: goalReached ? 0 : goal })
   }
 
   return points
