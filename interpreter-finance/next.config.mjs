@@ -9,9 +9,11 @@ const nextConfig = {
   output: 'standalone',
 }
 
-async function getPWA() {
-  const withPWA = (await import('next-pwa')).default
-  return withPWA({
+let config = nextConfig
+
+try {
+  const { default: withPWA } = await import('next-pwa')
+  config = withPWA({
     dest: 'public',
     register: true,
     skipWaiting: true,
@@ -45,7 +47,9 @@ async function getPWA() {
         },
       },
     ],
-  })
+  })(nextConfig)
+} catch {
+  // next-pwa not available, use config without PWA
 }
 
-export default (await getPWA())(nextConfig)
+export default config

@@ -3,8 +3,9 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml* ./
-RUN npm install -g pnpm && pnpm config set minimum-release-age 0 && pnpm install
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM node:20-alpine AS builder
@@ -14,11 +15,14 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-ENV NVIDIA_API_KEY=${NVIDIA_API_KEY}
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NVIDIA_API_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NVIDIA_API_KEY=$NVIDIA_API_KEY
 
-RUN npm install -g pnpm && pnpm config set minimum-release-age 0 && pnpm build --webpack
+RUN pnpm build --webpack
 
 # Production image, copy all the files and run next
 FROM node:20-alpine AS runner
