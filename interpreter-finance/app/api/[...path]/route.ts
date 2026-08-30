@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseClient } from '@/lib/supabase-server'
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const supabase = createSupabaseClient()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured.' }, { status: 500 })
+  }
+
   const { path } = await context.params
   const segment = path[0]
   const id = path[1]
@@ -45,7 +50,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
   } catch (error) {
-    return NextResponse.json({ error: 'Unable to reach the Supabase backend.' }, { status: 502 })
+    return NextResponse.json({ error: 'Unable to reach the Supabase backend.' }, { status: 500 })
   }
 }
 
