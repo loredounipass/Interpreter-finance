@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseClient } from '@/lib/supabase-server'
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  console.log('[...path] proxy called', (await context.params).path)
   const supabase = createSupabaseClient()
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase not configured.' }, { status: 500 })

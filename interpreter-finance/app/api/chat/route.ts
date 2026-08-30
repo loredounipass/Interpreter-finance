@@ -7,6 +7,7 @@ import { getUserIdFromRequest } from '@/lib/supabase-server'
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
 export async function POST(request: NextRequest) {
+  console.log('[chat] POST called')
   try {
     const { userId, supabase } = await getUserIdFromRequest(request)
 
