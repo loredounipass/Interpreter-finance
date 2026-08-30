@@ -9,7 +9,6 @@ type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 export async function POST(request: NextRequest) {
   try {
     const { userId, supabase } = await getUserIdFromRequest(request)
-    if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
 
     const body = await request.json()
     const modelKey = String(body.model ?? '')
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
     let basePos = 0
 
     const saveMsg = async (role: string, content: string, position: number) => {
-      if (!supabase || !sessionId) return
+      if (!userId || !supabase || !sessionId) return
       try {
         await supabase.from('chat_messages').insert([
           { session_id: sessionId, user_id: userId, role, content, position },
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const updateSession = async () => {
-      if (!supabase || !sessionId) return
+      if (!userId || !supabase || !sessionId) return
       try {
         await supabase.from('chat_sessions').update({ model: modelKey, updated_at: new Date().toISOString() }).eq('id', sessionId)
       } catch { /* optional */ }
