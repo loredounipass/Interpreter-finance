@@ -5,6 +5,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 // Retorna null si faltan variables (el route degradará gracefulmente).
 export function createSupabaseClient(token?: string | null): SupabaseClient | null {
+  console.log('[supabase-server] createSupabaseClient, url=', supabaseUrl ? 'set' : 'MISSING', 'key=', supabaseAnonKey ? 'set' : 'MISSING')
   if (!supabaseUrl || !supabaseAnonKey) return null
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
