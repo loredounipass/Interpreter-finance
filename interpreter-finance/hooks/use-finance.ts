@@ -269,7 +269,7 @@ export function useFinance() {
 
   return {
     currentMinutes, minutes: currentMinutes, goal, workHours, ratePerMinute, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
-    monthTotal, monthAverage, goalHitRate, goalProgress, completedDays, summary, weeklyData: periodData, chartData, calendarDays,
+    monthTotal, monthAverage, goalHitRate, goalProgress, completedDays, summary, weeklyData: periodData, chartData, calendarDays, dailyData: chartData,
     recentEntries, summaryMessage, weekDelta, greeting, monthTitle, deleteEntry, addEntry, logs,
     todayEarnings, monthEarnings, todayTotal,
   }
