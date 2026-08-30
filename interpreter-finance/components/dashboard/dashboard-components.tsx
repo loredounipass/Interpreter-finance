@@ -5,6 +5,7 @@ import {
   ArrowUpRight, BarChart3, CalendarDays, Check,
   Clock3, Flame, LayoutDashboard, LogOut, Menu, Plus, Settings2,
   Target, X, BadgeDollarSign, Wallet, CalendarRange, Trophy, MessageSquare,
+  ListChecks, Pencil, Trash2,
 } from 'lucide-react'
 import { AIChat } from '@/components/ai/ai-chat'
 import { ProgressChart } from './progress-chart'
@@ -17,7 +18,7 @@ import {
 } from '@/lib/finance'
 import { formatMinutes, formatLongDate, computeEarnings } from '@/lib/finance'
 
-type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat'
+type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Workspace'
 
 const VIEW_LABELS: Record<View, string> = {
   Overview: 'Overview',
@@ -26,6 +27,7 @@ const VIEW_LABELS: Record<View, string> = {
   Earnings: 'Earnings',
   Insights: 'Insights',
   'AI chat': 'interpreter AI',
+  Workspace: 'Workspace',
 }
 
 function Glass({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -38,6 +40,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export function Sidebar({ active, onNavigate, open, onClose }: { active: View; onNavigate: (view: View) => void; open: boolean; onClose: () => void }) {
   const items: { key: View; label: string; icon: React.ElementType }[] = [
     { key: 'Overview', label: 'Overview', icon: LayoutDashboard },
+    { key: 'Workspace', label: 'Workspace', icon: ListChecks },
     { key: 'Daily log', label: 'Daily log', icon: Clock3 },
     { key: 'Goals', label: 'Goals', icon: Target },
     { key: 'Earnings', label: 'Earnings', icon: Wallet },
@@ -395,6 +398,157 @@ export function MonthlyChart() {
   )
 }
 
+function WorkspaceView() {
+  const { logs, addEntry, updateEntry, deleteEntry, todayTotal, monthTotal } = useFinance()
+
+  const [newMins, setNewMins] = useState('')
+  const [newNote, setNewNote] = useState('')
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editMins, setEditMins] = useState('')
+  const [editNote, setEditNote] = useState('')
+
+  // Individual entries, most recently touched first ("Latest logs").
+  const entries = useMemo(
+    () => [...logs].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at))),
+    [logs]
+  )
+
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  }
+
+  const onAdd = async () => {
+    const mins = Number(newMins)
+    if (!Number.isFinite(mins) || mins <= 0) return
+    await addEntry(mins, newNote.trim() || undefined)
+    setNewMins('')
+    setNewNote('')
+  }
+
+  const startEdit = (id: string, minutes: number, note: string | null) => {
+    setEditId(id)
+    setEditMins(String(minutes))
+    setEditNote(note ?? '')
+  }
+
+  const saveEdit = async () => {
+    if (!editId) return
+    const mins = Number(editMins)
+    if (!Number.isFinite(mins) || mins < 0) return
+    setSavingId(editId)
+    await updateEntry(editId, mins, editNote.trim() || null)
+    setSavingId(null)
+    setEditId(null)
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-3">
+        <StatCard label="Today's total" value={`${Number(todayTotal.toFixed(2))}m`} note="Across all sessions" icon={Clock3} />
+        <StatCard label="Month total" value={formatMinutes(monthTotal)} note="This month" icon={Target} />
+        <StatCard label="Entries" value={`${entries.length}`} note="Individual logs" icon={ListChecks} />
+      </div>
+
+      <Glass className="p-5">
+        <div className="flex items-center justify-between">
+          <div><Eyebrow>New entry</Eyebrow><h2 className="mt-1 text-lg font-semibold">Log minutes</h2></div>
+          <Plus className="size-4 text-primary" />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-[160px_1fr_auto]">
+          <label className="flex flex-col gap-1.5">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Minutes</span>
+            <input
+              type="number" min="0" step="any" inputMode="decimal"
+              value={newMins} onChange={(e) => setNewMins(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onAdd()}
+              placeholder="30"
+              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-base outline-none focus:border-primary/50"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Note (opcional)</span>
+            <input
+              type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onAdd()}
+              placeholder="Call, meeting, practice…"
+              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none focus:border-primary/50"
+            />
+          </label>
+          <button onClick={onAdd} className="self-end rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90">
+            Add
+          </button>
+        </div>
+      </Glass>
+
+      <Glass className="p-5">
+        <div className="flex items-center justify-between">
+          <div><Eyebrow>Recent activity</Eyebrow><h2 className="mt-1 text-lg font-semibold">Latest logs</h2></div>
+          <span className="font-mono text-xs text-muted-foreground">{entries.length} total</span>
+        </div>
+        <div className="mt-4 flex flex-col gap-1 max-h-[540px] overflow-y-auto pr-1">
+          {entries.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No entries yet. Add your first minutes above.</p>
+          ) : (
+            entries.map((e) => {
+              const editing = editId === e.id
+              return (
+                <div key={e.id} className="flex flex-wrap items-center gap-3 rounded-xl px-2 py-3 hover:bg-white/[0.04]">
+                  <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><Clock3 className="size-4" /></div>
+                  {editing ? (
+                    <>
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                        <input
+                          type="number" min="0" step="any" inputMode="decimal"
+                          value={editMins} onChange={(ev) => setEditMins(ev.target.value)}
+                          onKeyDown={(ev) => ev.key === 'Enter' && saveEdit()}
+                          className="w-20 rounded-lg border border-primary/30 bg-white/[0.05] px-2 py-1.5 font-mono text-sm outline-none"
+                        />
+                        <input
+                          type="text" value={editNote} onChange={(ev) => setEditNote(ev.target.value)}
+                          onKeyDown={(ev) => ev.key === 'Enter' && saveEdit()}
+                          placeholder="Note"
+                          className="min-w-[140px] flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 text-sm outline-none focus:border-primary/50"
+                        />
+                        <span className="text-xs text-muted-foreground">{fmtDate(e.updated_at)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button onClick={saveEdit} disabled={savingId === e.id} aria-label="Save" className="grid size-8 place-items-center rounded-lg bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50">
+                          <Check className="size-4" />
+                        </button>
+                        <button onClick={() => setEditId(null)} aria-label="Cancel" className="grid size-8 place-items-center rounded-lg border border-white/10 text-muted-foreground hover:text-foreground">
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{e.note || 'Daily practice'}</p>
+                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{fmtDate(e.updated_at)}</p>
+                      </div>
+                      <span className="shrink-0 font-mono text-sm">{Number(e.minutes.toFixed(2))}m</span>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => startEdit(e.id, e.minutes, e.note)} aria-label="Edit" className="grid size-8 place-items-center rounded-lg border border-white/10 text-muted-foreground hover:text-foreground">
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button onClick={() => deleteEntry(e.id)} aria-label="Delete" className="grid size-8 place-items-center rounded-lg border border-white/10 text-muted-foreground hover:border-red-500/40 hover:text-red-400">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </Glass>
+    </div>
+  )
+}
+
 function Operations() {
   const { currentMinutes, todayTotal, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta, todayEarnings, monthEarnings } = useFinance()
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
@@ -565,7 +719,7 @@ export function Dashboard() {
   
   useEffect(() => {
     const saved = localStorage.getItem('dashboard_view') as View
-    if (saved && ['Overview', 'Daily log', 'Goals', 'Earnings', 'Insights', 'AI chat'].includes(saved)) {
+    if (saved && ['Overview', 'Workspace', 'Daily log', 'Goals', 'Earnings', 'Insights', 'AI chat'].includes(saved)) {
       setActive(saved)
     }
   }, [])
@@ -575,7 +729,7 @@ export function Dashboard() {
     localStorage.setItem('dashboard_view', view)
   }
 
-  const content = active === 'Overview' ? <Operations /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : active === 'AI chat' ? <AIChat /> : <Insights />
+  const content = active === 'Overview' ? <Operations /> : active === 'Workspace' ? <WorkspaceView /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : active === 'AI chat' ? <AIChat /> : <Insights />
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className="flex h-full">

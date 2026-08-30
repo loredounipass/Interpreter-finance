@@ -255,6 +255,22 @@ export function useFinance() {
     }
   }, [today])
 
+  const updateEntry = useCallback(async (id: string, minutes: number, note?: string | null) => {
+    try {
+      const { data, error } = await supabase
+        .from('daily_logs')
+        .update({ minutes: Number(minutes.toFixed(2)), note: note ?? null, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      setLogs((prev) => prev.map((l) => (l.id === id ? data : l)))
+      return data
+    } catch {
+      return null
+    }
+  }, [])
+
   const periodData = useMemo(() => {
     if (period === 'day') return buildWeeklyData(logs, goal)
     if (period === 'year') {
@@ -270,7 +286,7 @@ export function useFinance() {
   return {
     currentMinutes, minutes: currentMinutes, goal, workHours, ratePerMinute, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
     monthTotal, monthAverage, goalHitRate, goalProgress, completedDays, summary, weeklyData: periodData, chartData, calendarDays, dailyData: chartData,
-    recentEntries, summaryMessage, weekDelta, greeting, monthTitle, deleteEntry, addEntry, logs,
+    recentEntries, summaryMessage, weekDelta, greeting, monthTitle, deleteEntry, addEntry, updateEntry, logs,
     todayEarnings, monthEarnings, todayTotal,
   }
 }
