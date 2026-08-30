@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faltan mensajes.' }, { status: 400 })
     }
 
-    let createdSession = false
     let basePos = 0
 
     const saveMsg = async (role: string, content: string, position: number) => {
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
         const firstUser = [...messages].reverse().find((m) => m.role === 'user')
         const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
         const { data: sess, error: sessErr } = await supabase.from('chat_sessions').insert([{ user_id: userId, title, model: modelKey }]).select('id').single()
-        if (!sessErr && sess) { sessionId = sess.id; createdSession = true }
+        if (!sessErr && sess) { sessionId = sess.id }
       } catch { /* optional */ }
     }
     if (sessionId && supabase) {
