@@ -399,10 +399,8 @@ export function MonthlyChart() {
 }
 
 function WorkspaceView() {
-  const { logs, addEntry, updateEntry, deleteEntry, todayTotal, monthTotal } = useFinance()
+  const { logs, updateEntry, deleteEntry, todayTotal, monthTotal } = useFinance()
 
-  const [newMins, setNewMins] = useState('')
-  const [newNote, setNewNote] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [editMins, setEditMins] = useState('')
@@ -417,14 +415,6 @@ function WorkspaceView() {
   const fmtDate = (iso: string) => {
     const d = new Date(iso)
     return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  }
-
-  const onAdd = async () => {
-    const mins = Number(newMins)
-    if (!Number.isFinite(mins) || mins <= 0) return
-    await addEntry(mins, newNote.trim() || undefined)
-    setNewMins('')
-    setNewNote('')
   }
 
   const startEdit = (id: string, minutes: number, note: string | null) => {
@@ -450,37 +440,6 @@ function WorkspaceView() {
         <StatCard label="Month total" value={formatMinutes(monthTotal)} note="This month" icon={Target} />
         <StatCard label="Entries" value={`${entries.length}`} note="Individual logs" icon={ListChecks} />
       </div>
-
-      <Glass className="p-5">
-        <div className="flex items-center justify-between">
-          <div><Eyebrow>New entry</Eyebrow><h2 className="mt-1 text-lg font-semibold">Log minutes</h2></div>
-          <Plus className="size-4 text-primary" />
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-[160px_1fr_auto]">
-          <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Minutes</span>
-            <input
-              type="number" min="0" step="any" inputMode="decimal"
-              value={newMins} onChange={(e) => setNewMins(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onAdd()}
-              placeholder="30"
-              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-base outline-none focus:border-primary/50"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Note (opcional)</span>
-            <input
-              type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onAdd()}
-              placeholder="Call, meeting, practice…"
-              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none focus:border-primary/50"
-            />
-          </label>
-          <button onClick={onAdd} className="self-end rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90">
-            Add
-          </button>
-        </div>
-      </Glass>
 
       <Glass className="p-5">
         <div className="flex items-center justify-between">
