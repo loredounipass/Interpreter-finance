@@ -6,7 +6,6 @@ import { ToastProvider } from '@/components/ui/app-toast'
 export const metadata: Metadata = {
   title: 'Interpreter Finance',
   description: 'Track your interpretation practice, goals, and progress.',
-  generator: 'v0.app',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
