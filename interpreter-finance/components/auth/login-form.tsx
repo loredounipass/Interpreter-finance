@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -17,6 +17,14 @@ export function LoginForm() {
   const [showVerifyPassword, setShowVerifyPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [signedIn, setSignedIn] = useState(false)
+
+  useEffect(() => {
+    if (signedIn) {
+      const t = setTimeout(() => { router.push('/'); router.refresh() }, 1200)
+      return () => clearTimeout(t)
+    }
+  }, [signedIn, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,13 +92,20 @@ export function LoginForm() {
         }
       }
 
-      router.push('/')
-      router.refresh()
+      setSignedIn(true)
     } catch {
       setError('Something went wrong.')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (signedIn) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <img src="/icon.svg" className="w-16 h-16" alt="Interpreter Finance" />
+      </div>
+    )
   }
 
   return (

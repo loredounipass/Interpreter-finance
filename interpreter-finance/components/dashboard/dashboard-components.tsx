@@ -51,7 +51,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
     <aside className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-white/10 bg-sidebar/90 p-5 backdrop-blur-xl transition-transform lg:static lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="mb-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
-           <img src="/icon.svg" className="w-6 h-6" alt="Interpreter Finance" />
+           <img src="/icon.svg" className="w-7 h-7" alt="Interpreter Finance" />
           <div>
             <p className="text-sm font-semibold">Interpreter</p>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Finance</p>
@@ -101,6 +101,7 @@ export function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
     <header className="flex items-center justify-between border-b border-white/10 px-5 py-4 lg:px-10">
       <div className="flex items-center gap-3">
         <button className="lg:hidden" onClick={onMenu} aria-label="Open menu"><Menu className="size-5" /></button>
+        <img src="/icon.svg" className="w-6 h-6" alt="Interpreter Finance" />
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{VIEW_LABELS[view]}</p>
           <h1 className="mt-1 text-lg font-semibold">{greeting}, {firstName}</h1>
