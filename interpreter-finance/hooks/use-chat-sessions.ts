@@ -68,8 +68,11 @@ export function useChatSessions() {
           return null
         }
         const session: ChatSession = data.session
+        // Actualizar primero el estado de sesiones
         setSessions((prev) => [session, ...prev])
+        // Luego establecer como sesión actual
         setCurrentSessionId(session.id)
+        // Retornar la sesión para que el componente padre pueda usarla
         return session
       } catch (e) {
         console.error('Excepción al crear sesión:', e)

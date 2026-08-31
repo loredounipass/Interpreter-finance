@@ -36,7 +36,8 @@ export function useAIChat(opts?: UseAIChatOptions) {
       if (!text || isLoading) return
 
       // Verificar que haya un sessionId válido si se requiere
-      if (opts?.sessionId === undefined || opts?.sessionId === null) {
+      if (!opts?.sessionId) {
+        console.error('Intento de enviar mensaje sin sessionId:', { sessionId: opts?.sessionId, hasOpt: !!opts })
         setError('No hay una sesión activa. Por favor, crea o selecciona una sesión.')
         return
       }
