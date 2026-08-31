@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserIdFromRequest } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
-  console.log('[sessions] GET called')
   const { userId, supabase } = await getUserIdFromRequest(request)
   if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
 
@@ -17,7 +16,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log('[sessions] POST called')
   const { userId, supabase } = await getUserIdFromRequest(request)
   if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
 

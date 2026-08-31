@@ -24,7 +24,10 @@ export function useChatSessions() {
     try {
       const headers = await authHeaders()
       const res = await fetch('/api/chat/sessions', { headers })
-      if (!res.ok) return
+      if (!res.ok) {
+        setSessions([])
+        return
+      }
       const data = await res.json()
       const list: ChatSession[] = data.sessions ?? []
       setSessions(list)
@@ -37,7 +40,7 @@ export function useChatSessions() {
         setCurrentSessionId(null)
       }
     } catch {
-      // ignore
+      setSessions([])
     } finally {
       setIsLoading(false)
     }
