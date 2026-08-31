@@ -166,7 +166,7 @@ export function useFinance() {
           await upsert()
           return
         } catch {
-          if (attempt === 2) throw
+          if (attempt === 2) throw new Error('Failed to persist minutes after 3 attempts')
           await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
         }
       }
