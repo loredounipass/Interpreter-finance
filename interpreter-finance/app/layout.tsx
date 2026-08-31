@@ -15,7 +15,6 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  themeColor: '#0b2026',
 }
 
 export const viewport: Viewport = { colorScheme: 'dark', themeColor: '#0b2026', userScalable: true }

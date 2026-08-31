@@ -27,7 +27,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Faltan mensajes.' }, { status: 400 })
     }
 
-    let basePos = 0
+    const provider = PROVIDERS[model.apiProvider]
+    const apiKey = getProviderApiKey(model.apiProvider)
+    if (!apiKey) {
+      return NextResponse.json({ error: `Falta la variable de entorno ${provider.envKey}.` }, { status: 500 })
+    }
+
+    const systemPrompt = context ? buildSystemPrompt(context) : ''
+    const fullMessages: ChatMessage[] = systemPrompt
+      ? [{ role: 'system', content: systemPrompt }, ...messages]
+      : messages
+
+    const response = await fetch(provider.url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: model.id, messages: fullMessages, temperature: body.temperature ?? 0.2, max_tokens: body.max_tokens ?? 512, stream: true }),
+    })
+
+    if (!response.ok || !response.body) {
+      const text = await response.text()
+      return NextResponse.json({ error: `Error del provider (${response.status}): ${text.slice(0, 300)}` }, { status: 502 })
+    }
 
     const saveMsg = async (role: string, content: string, position: number) => {
       if (!userId || !supabase || !sessionId) return
@@ -45,48 +65,7 @@ export async function POST(request: NextRequest) {
       } catch { /* optional */ }
     }
 
-    if (supabase && sessionId) {
-      try {
-        const { data: sess } = await supabase.from('chat_sessions').select('id, user_id').eq('id', sessionId).single()
-        if (!sess || sess.user_id !== userId) sessionId = ''
-      } catch { sessionId = '' }
-    }
-    if (!sessionId && supabase) {
-      try {
-        const firstUser = [...messages].reverse().find((m) => m.role === 'user')
-        const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
-        const { data: sess, error: sessErr } = await supabase.from('chat_sessions').insert([{ user_id: userId, title, model: modelKey }]).select('id').single()
-        if (!sessErr && sess) { sessionId = sess.id }
-      } catch { /* optional */ }
-    }
-    if (sessionId && supabase) {
-      try {
-        const { count } = await supabase.from('chat_messages').select('id', { count: 'exact', head: true }).eq('session_id', sessionId)
-        basePos = count ?? 0
-      } catch { basePos = 0 }
-    }
-
     const userMsg = messages[messages.length - 1]
-
-    const provider = PROVIDERS[model.apiProvider]
-    const apiKey = getProviderApiKey(model.apiProvider)
-    if (!apiKey) {
-      return NextResponse.json({ error: `Falta la variable de entorno ${provider.envKey}.` }, { status: 500 })
-    }
-
-    const systemPrompt = context ? buildSystemPrompt(context) : ''
-    const fullMessages: ChatMessage[] = systemPrompt ? [{ role: 'system', content: systemPrompt }, ...messages] : messages
-
-    const response = await fetch(provider.url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model.id, messages: fullMessages, temperature: body.temperature ?? 0.2, max_tokens: body.max_tokens ?? 512, stream: true }),
-    })
-
-    if (!response.ok || !response.body) {
-      const text = await response.text()
-      return NextResponse.json({ error: `Error del provider (${response.status}): ${text.slice(0, 300)}` }, { status: 502 })
-    }
 
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
@@ -118,9 +97,29 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode('\n[Error de stream]'))
         } finally {
           controller.close()
-          await saveMsg(userMsg.role, userMsg.content, basePos + 1)
-          if (acc.trim()) await saveMsg('assistant', acc, basePos + 2)
-          await updateSession()
+
+          // Persistencia best-effort (después del stream, no bloquea).
+          if (!userId || !supabase) return
+
+          if (!sessionId) {
+            try {
+              const firstUser = [...messages].reverse().find((m) => m.role === 'user')
+              const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
+              const { data: sess, error: sessErr } = await supabase.from('chat_sessions').insert([{ user_id: userId, title, model: modelKey }]).select('id').single()
+              if (!sessErr && sess) sessionId = sess.id
+            } catch { /* optional */ }
+          }
+
+          let basePos = 0
+          if (sessionId) {
+            try {
+              const { count } = await supabase.from('chat_messages').select('id', { count: 'exact', head: true }).eq('session_id', sessionId)
+              basePos = count ?? 0
+            } catch { basePos = 0 }
+            await saveMsg(userMsg.role, userMsg.content, basePos + 1)
+            if (acc.trim()) await saveMsg('assistant', acc, basePos + 2)
+            await updateSession()
+          }
         }
       },
     })

@@ -18,7 +18,7 @@ import {
 } from '@/lib/finance'
 import { formatMinutes, formatLongDate, computeEarnings } from '@/lib/finance'
 
-type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Workspace'
+type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity'
 
 const VIEW_LABELS: Record<View, string> = {
   Overview: 'Overview',
@@ -27,7 +27,7 @@ const VIEW_LABELS: Record<View, string> = {
   Earnings: 'Earnings',
   Insights: 'Insights',
   'AI chat': 'interpreter AI',
-  Workspace: 'Workspace',
+  Activity: 'Activity',
 }
 
 function Glass({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -40,7 +40,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export function Sidebar({ active, onNavigate, open, onClose }: { active: View; onNavigate: (view: View) => void; open: boolean; onClose: () => void }) {
   const items: { key: View; label: string; icon: React.ElementType }[] = [
     { key: 'Overview', label: 'Overview', icon: LayoutDashboard },
-    { key: 'Workspace', label: 'Workspace', icon: ListChecks },
+    { key: 'Activity', label: 'Activity', icon: ListChecks },
     { key: 'Daily log', label: 'Daily log', icon: Clock3 },
     { key: 'Goals', label: 'Goals', icon: Target },
     { key: 'Earnings', label: 'Earnings', icon: Wallet },
@@ -63,7 +63,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
       </div>
       <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-8">
         <div>
-          <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Workspace</p>
+          <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Activity</p>
           <div className="flex flex-col gap-1">
             {items.map((item) => (
               <button key={item.key} onClick={() => { onNavigate(item.key); onClose() }} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${active === item.key ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'}`}>
@@ -398,7 +398,7 @@ export function MonthlyChart() {
   )
 }
 
-function WorkspaceView() {
+function ActivityView() {
   const { logs, updateEntry, deleteEntry, todayTotal, monthTotal } = useFinance()
 
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -678,7 +678,7 @@ export function Dashboard() {
   
   useEffect(() => {
     const saved = localStorage.getItem('dashboard_view') as View
-    if (saved && ['Overview', 'Workspace', 'Daily log', 'Goals', 'Earnings', 'Insights', 'AI chat'].includes(saved)) {
+    if (saved && ['Overview', 'Activity', 'Daily log', 'Goals', 'Earnings', 'Insights', 'AI chat'].includes(saved)) {
       setActive(saved)
     }
   }, [])
@@ -688,7 +688,7 @@ export function Dashboard() {
     localStorage.setItem('dashboard_view', view)
   }
 
-  const content = active === 'Overview' ? <Operations /> : active === 'Workspace' ? <WorkspaceView /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : active === 'AI chat' ? <AIChat /> : <Insights />
+  const content = active === 'Overview' ? <Operations /> : active === 'Activity' ? <ActivityView /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : active === 'AI chat' ? <AIChat /> : <Insights />
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className="flex h-full">
