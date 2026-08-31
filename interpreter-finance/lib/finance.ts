@@ -319,10 +319,21 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
   const totalEarnings = qualified.reduce((s, l) => s + earn(l.minutes), 0)
 
-  const qualifiedDays = [...logs]
-    .sort((a, b) => b.logged_on.localeCompare(a.logged_on))
-    .slice(0, 14)
-    .map((l) => ({ date: l.logged_on, minutes: l.minutes, note: l.note, earnings: earn(l.minutes), qualified: qualifies(l) }))
+  const qualifiedDays = (() => {
+    const byDate = new Map<string, { minutes: number; note: string | null }>()
+    for (const l of [...logs].sort((a, b) => b.logged_on.localeCompare(a.logged_on))) {
+      const existing = byDate.get(l.logged_on)
+      if (existing) {
+        existing.minutes += l.minutes
+        if (!existing.note && l.note) existing.note = l.note
+      } else {
+        byDate.set(l.logged_on, { minutes: l.minutes, note: l.note })
+      }
+    }
+    return [...byDate.entries()]
+      .slice(0, 14)
+      .map(([date, d]) => ({ date, minutes: d.minutes, note: d.note, earnings: earn(d.minutes), qualified: d.minutes >= goal || date < today }))
+  })()
 
   return { todayEarnings, weekEarnings, monthEarnings, yearEarnings, totalEarnings, qualifiedDays }
 }

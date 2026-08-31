@@ -138,25 +138,37 @@ export function useFinance() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
 
-      if (activeLogId) {
-        const { data, error } = await supabase
-          .from('daily_logs')
-          .update({ minutes: minutesToSave, updated_at: new Date().toISOString() })
-          .eq('id', activeLogId)
-          .select()
-          .single()
-        if (error) throw error
-        setLogs((prev) => prev.map((l) => (l.id === activeLogId ? data : l)))
-      } else {
-        if (minutesToSave === 0) return
-        const { data, error } = await supabase
-          .from('daily_logs')
-          .insert([{ user_id: session.user.id, logged_on: today, minutes: minutesToSave, note: null, is_active: true }])
-          .select()
-          .single()
-        if (error) throw error
-        setActiveLogId(data.id)
-        setLogs((prev) => [data, ...prev])
+      const upsert = async () => {
+        if (activeLogId) {
+          const { data, error } = await supabase
+            .from('daily_logs')
+            .update({ minutes: minutesToSave, updated_at: new Date().toISOString() })
+            .eq('id', activeLogId)
+            .select()
+            .single()
+          if (error) throw error
+          setLogs((prev) => prev.map((l) => (l.id === activeLogId ? data : l)))
+        } else {
+          if (minutesToSave === 0) return
+          const { data, error } = await supabase
+            .from('daily_logs')
+            .insert([{ user_id: session.user.id, logged_on: today, minutes: minutesToSave, note: null, is_active: true }])
+            .select()
+            .single()
+          if (error) throw error
+          setActiveLogId(data.id)
+          setLogs((prev) => [data, ...prev])
+        }
+      }
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await upsert()
+          return
+        } catch {
+          if (attempt === 2) throw
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
+        }
       }
     } catch (e: any) {
       console.error('Save minutes error:', e?.message || String(e))
