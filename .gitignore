@@ -1,17 +1,144 @@
-```
 # Dependencies
 node_modules/
-.yarn/
+**/node_modules/
+.julia/
+.julia/**
+zig-cache/
+zig-out/
+
+# Build artifacts
+dist/
+build/
+target/
+**/target/
+tmp/
+**/tmp/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.venv/
+.env
+.env.local
+.env.*
+.envrc
+**/.env
+**/.env.*
+
+# Logs
+*.log
 npm-debug.log*
-$RECYCLE.BIN/
-*.tar.gz
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Thumbs.db:encryptable
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+**/coverage/
+
+# Temporary folders
+temp/
+**/temp/
+
+# Supabase
+.supabase/
+**/.supabase/
+
+# TypeScript/JavaScript build output
+lib/
+**/lib/
+out/
+**/out/
+dist/
+**/dist/
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Next.js
+.next/
+**/.next/
+out/
+**/out/
+
+# Vercel
+.vercel/
+**/.vercel/
+
+# General cache directories
+.cache/
+**/.cache/
+
+# Lock files
+.yarn-integrity
+.pnp.cjs
+.pnp.loader.mjs
+.pnp.js
+
+# Testing
+coverage/
+.nyc_output/
+.jest/
+**/jest/**
+
+# Database
+*.db
+*.db-journal
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+Icon?
+.directory
+.Trashes
+*.nib
+*.lproj
+.svn
+.git
+CVS
+
+# Compression
 *.zip
-*.rar
-*.7z
-*.tar
 *.gz
+*.tar
+*.tgz
 *.bz2
 *.xz
+*.7z
+*.rar
 *.zst
 *.lz4
 *.lzh
@@ -27,650 +154,41 @@ $RECYCLE.BIN/
 *.tar.xz
 *.tar.zst
 
-# Environment variables
-.env
-.env.local
-.env.*
-!.env.example
-
-# IDE and editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
+# Temporary files
 *.tmp
 *.temp
+*.bak
+*.backup
+*.swp
+*.swo
 
-# Build outputs
-dist/
-build/
-target/
-out/
-_output/
-_coverage/
-htmlcov/
-.nyc_output/
-coverage/
+# IDE specific
+.vs/
+**/.vs/
+*.userprefs
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 
-# Python specific
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg-info/
-.eggs/
-.venv/
-venv/
-ENV/
-env.bak/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.tox.ini
-.coverage
-.coverage.*
-.cache/
-.pytest_cache/
-.hypothesis/
-.mypy_cache/
-noxfile.py
-noxfile.py.*
-*.pot
-*.po
-*~
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-*$py.data
-*$py.metadata
+# Browser extensions
+*.crx
+*.xpi
+*.nex
 
-# C extensions
-*.so
+# Code coverage
+*.lcov
+*.info
 
 # Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+*.msi
+*.msix
+*.deb
+*.rpm
+*.snap
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# Pytype
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-.idea/
-
-# VS Code
-.vscode/
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-node_modules/
-.pnp
-.pnp.js
-.yarn-integrity
-.yarn/
-.cache/
-parcel-cache/
-
-# Typescript
-*.tsbuildinfo
-*.js.map
-*.ts.map
-
-# Bower
-bower_components/
-
-# Grunt
-Gruntfile.js
-
-# Gulp
-gulpfile.js
-
-# Webpack
-webpack.config.js
-
-# Ember
-tmp/
-temp/
-
-# Jspm
-jspm_packages/
-
-# Browser-sync
-.browser-sync*
-
-# Sass
-.sass-cache/
-.css.map
-
-# CodeKit
-.kitchen/
-.codekit-cache/
-
-# Brunch
-public/
-.brunch/
-
-# Rails
-*.rbc
-capybara-*.html
-.rake_tasks
-.rid
-.session
-.sass-cache
-sqlite3*.db
-sqlite3*.db-journal
-.rvmrc
-.zeus.sock
-.rbx/
-.bundle/
-vendor/bundle
-vendor/cache
-vendor/gems
-vendor/ruby
-
-# React Native
-node_modules/
-ios/Pods/
-android/build/
-android/app/build/
-index.ios.bundle
-index.android.bundle
-
-# Cordova
-hooks/
-platforms/
-plugins/
-config.xml
-res/
-
-# Ionic
-ionic/www/
-.platforms/
-.plugins/
-
-# PhoneGap
-merges/
-platforms/
-plugins/
-www/
-
-# Electron
-node_modules/
-dist_electron/
-electron/
-resources/
-
-# NW.js
-node_modules/
-cache/
-nw/
-package.nw
-
-# Meteor
-.meteor/local/
-
-# Titanium
-Resources/.DS_Store
-build/
-*.log
-mobileweb/
-node_modules/
-config.json
-
-# Tessel
-.node_modules
-.tessel/include/node
-.tessel/npm/
-.tessel/package-lock.json
-
-# App Engine
-.appspot.com
-app.yaml
-app.yml
-index.yaml
-index.yml
-queue.yaml
-queue.yml
-cron.yaml
-cron.yml
-dispatch.yaml
-dispatch.yml
-dos.yaml
-dos.yml
-backends.yaml
-backends.yml
-pipeline.yaml
-pipeline.yml
-appengine-generated/
-.versions/
-bin/
-gen/
-
-# Firebase
-.firebase/
-firebase-debug.log
-
-# Visual Studio Code
-.vscode/
-
-# Visual Studio
-*.VC.db
-*.VC.VC.opendb
-*.user
-*.userosscache
-*.sln.docstates
-*.userprefs
-ipch/
-obj/
-[Tt]emp/
-[Tt]emporary[Tt]hings/
-*.aps
-*.gpState
-*.ncb
-*.opensdf
-*.sdf
-*.cachefile
-*.VC.VC.opendb
-*.VC.db
-*.vcas
-*.vcp
-*.vcr
-*.vcx
-*.vsp
-*.vst
-*.vsw
-*.vwx
-*.vxd
-*.vxi
-*.vxp
-*.vxs
-*.vxt
-*.vxw
-*.vxx
-*.vxy
-*.vxz
-*.vyz
-*.vza
-*.vzb
-*.vzc
-*.vzd
-*.vze
-*.vzf
-*.vzg
-*.vzh
-*.vzi
-*.vzj
-*.vzk
-*.vzl
-*.vzm
-*.vzn
-*.vzo
-*.vzp
-*.vzq
-*.vzr
-*.vzs
-*.vzt
-*.vzu
-*.vvx
-*.vvy
-*.vvz
-*.vwa
-*.vwb
-*.vwc
-*.vwd
-*.vwe
-*.vwf
-*.vwg
-*.vwh
-*.vwi
-*.vwj
-*.vwk
-*.vwl
-*.vwm
-*.vwn
-*.vwo
-*.vwp
-*.vwq
-*.vwr
-*.vws
-*.vwt
-*.vwu
-*.vwv
-*.vww
-*.vwx
-*.vwy
-*.vwz
-*.vxa
-*.vxb
-*.vxc
-*.vxd
-*.vxe
-*.vxf
-*.vxg
-*.vxh
-*.vxi
-*.vxj
-*.vxk
-*.vxl
-*.vxm
-*.vxn
-*.vxo
-*.vxp
-*.vxq
-*.vxr
-*.vxs
-*.vxt
-*.vxu
-*.vxv
-*.vxw
-*.vxx
-*.vxy
-*.vxz
-*.vyz
-*.vza
-*.vzb
-*.vzc
-*.vzd
-*.vze
-*.vzf
-*.vzg
-*.vzh
-*.vzi
-*.vzj
-*.vzk
-*.vzl
-*.vzm
-*.vzn
-*.vzo
-*.vzp
-*.vzq
-*.vzr
-*.vzs
-*.vzt
-*.vzu
-*.zwc
-*.zwd
-*.zwe
-*.zwf
-*.zwg
-*.zwh
-*.zwi
-*.zwj
-*.zwk
-*.zwl
-*.zwm
-*.zwn
-*.zwo
-*.zwp
-*.zwq
-*.zwr
-*.zws
-*.zwt
-*.zwu
-*.zwv
-*.zww
-*.zwx
-*.zwy
-*.zwz
-*.zya
-*.zyb
-*.zyc
-*.zyd
-*.zye
-*.zyf
-*.zyg
-*.zyh
-*.zyi
-*.zyj
-*.zyk
-*.zyl
-*.zym
-*.zyn
-*.zyo
-*.zyp
-*.zyq
-*.zyr
-*.zys
-*.zyt
-*.zyu
-*.zyv
-*.zyw
-*.zyx
-*.zyy
-*.zyz
-*.zza
-*.zzb
-*.zzc
-*.zzd
-*.zze
-*.zzf
-*.zzg
-*.zzh
-*.zzi
-*.zzj
-*.zzk
-*.zzl
-*.zzm
-*.zzn
-*.zzo
-*.zzp
-*.zzq
-*.zzr
-*.zzs
-*.zzt
-*.zzu
-*.zzv
-*.zzw
-*.zzx
-*.zzy
-*.zzz
-*.un~
-*~
-*.~lock*
-*.log
-*.err
-*.bak
-*.tmp
-*.temp
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.a
-*.lib
-*.dylib
-*.plist
-*.swp
-*.swo
-*.cache
-*.cached
-*.dll.config
-*.pdb
-*.ilk
-*.iobj
-*.ipdb
-*.exp
-*.lib
-*.map
-*.opendb
-*.opensdf
-*.sdf
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.userprefs
-*.svclog
-*.pidb
-*.idb
-*.pdb
-*.ilk
-*.meta
-*.pidb
-*.iobj
-*.ipdb
-*.dat
-*.cache
-*.cached
-*.log
-*.tmp
-*.temp
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.a
-*.lib
-*.dylib
-*.plist
-*.swp
-*.swo
-*.cache
-*.cached
-*.dll.config
-*.pdb
-*.ilk
-*.iobj
-*.ipdb
-*.exp
-*.lib
-*.map
-*.opendb
-*.opensdf
-*.sdf
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.userprefs
-*.svclog
-*.pidb
-*.idb
-*.pdb
-*.ilk
-*.meta
-*.pidb
-*.iobj
-*.ipdb
-*.dat
-*.cache
-*.cached
-```
+# Folders to ignore
+julia-*/
+**/julia-*/
+zig*/
+**/zig*/
