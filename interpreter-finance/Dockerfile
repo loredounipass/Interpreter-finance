@@ -22,7 +22,7 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NVIDIA_API_KEY=$NVIDIA_API_KEY
 
-RUN npm install -g pnpm@9 && pnpm build --webpack
+RUN npm install -g pnpm@9 && pnpm build
 
 # Production image, copy all the files and run next
 FROM node:20-alpine AS runner
