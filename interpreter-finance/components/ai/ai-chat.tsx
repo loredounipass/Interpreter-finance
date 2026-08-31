@@ -64,7 +64,9 @@ export function AIChat() {
 
   const { messages, setMessages, model, setModel, input, setInput, isLoading, error, setError, send, clear } = useAIChat({
     sessionId: currentSessionId,
-    onSessionCreated: setCurrentSessionId,
+    onSessionCreated: (id) => {
+      setCurrentSessionId(id)
+    },
   })
 
   const context = useMemo<ChatContext>(
@@ -175,8 +177,6 @@ export function AIChat() {
       setError('No se pudo crear la sesión. Por favor, intenta de nuevo.')
       return
     }
-    // Esperar un tick para asegurar que el estado se sincronizó
-    await new Promise(resolve => setTimeout(resolve, 0))
     setMessages([])
     setError(null)
     spokenIdx.current = -1
