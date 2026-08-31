@@ -23,6 +23,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="bg-background">
       <head>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0b2026" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
