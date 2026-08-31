@@ -4,7 +4,11 @@ import { supabase } from './supabase'
 // Usa la sesión activa de Supabase (access token) para que el servidor pueda
 // identificar al usuario y aplicar las RLS policies.
 export async function authHeaders(): Promise<Record<string, string>> {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  try {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
+  }
 }
