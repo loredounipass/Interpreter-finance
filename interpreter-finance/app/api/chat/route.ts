@@ -99,13 +99,16 @@ export async function POST(request: NextRequest) {
     const decoder = new TextDecoder()
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
+        console.log('[chat] stream start')
         const reader = response.body!.getReader()
         let buffer = ''
         let acc = ''
+        let chunks = 0
         try {
           while (true) {
             const { done, value } = await reader.read()
-            if (done) break
+            if (done) { console.log('[chat] stream done, chunks=', chunks); break }
+            chunks++
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split('\n')
             buffer = lines.pop() ?? ''
@@ -122,18 +125,19 @@ export async function POST(request: NextRequest) {
             }
           }
         } catch (e) {
+          console.log('[chat] stream error:', e instanceof Error ? e.message : String(e))
           controller.enqueue(encoder.encode(`\n[Error de stream: ${e instanceof Error ? e.message : String(e)}]`))
         } finally {
           controller.close()
-          // Persistencia best-effort: asistente + sesión.
           if (acc.trim()) await saveMsg('assistant', acc, basePos + 2)
           await updateSession()
         }
       },
     })
 
+    console.log('[chat] returning Response, stream created')
     return new Response(stream, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'X-Model': model.id, 'X-Session-Id': sessionId },
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'X-Model': model.id, 'X-Session-Id': sessionId },
     })
   } catch (error) {
     return NextResponse.json({ error: `Error interno: ${error instanceof Error ? error.message : String(error)}` }, { status: 500 })
