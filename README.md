@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/apple-icon.png" alt="Interpreter Finance" width="120" />
+<img src="./public/apple-icon.png" alt="Interpreter Finance" width="120" />
 
 # Interpreter Finance
 
