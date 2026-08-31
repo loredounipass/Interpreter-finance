@@ -29,18 +29,15 @@ export function useAIChat(opts?: UseAIChatOptions) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null)
 
   const send = useCallback(
     async (context?: ChatContext, overrideText?: string) => {
       const text = (overrideText ?? input).trim()
       if (!text || isLoading) return
 
-      // Verificar que haya un sessionId válido si se requiere
-      if (!opts?.sessionId) {
-        console.error('Intento de enviar mensaje sin sessionId:', { sessionId: opts?.sessionId, hasOpt: !!opts })
-        setError('No hay una sesión activa. Por favor, crea o selecciona una sesión.')
-        return
-      }
+      // Si no hay sessionId, permitimos continuar para que la API cree uno automáticamente
+      const sessionIdToSend = opts?.sessionId ?? pendingSessionId
 
       const nextMessages: ChatMessage[] = [...messages, { role: 'user', content: text }]
       setMessages([...nextMessages, { role: 'assistant', content: '' }])
@@ -71,7 +68,7 @@ export function useAIChat(opts?: UseAIChatOptions) {
               model,
               messages: nextMessages,
               context,
-              sessionId: opts?.sessionId ?? null,
+              sessionId: sessionIdToSend ?? null,
             }),
           })
 
@@ -87,7 +84,10 @@ export function useAIChat(opts?: UseAIChatOptions) {
 
           // El servidor crea la sesión si no se envió una; nos devuelve el id.
           const newSessionId = res.headers.get('X-Session-Id')
-          if (newSessionId && opts?.onSessionCreated) opts.onSessionCreated(newSessionId)
+          if (newSessionId) {
+            setPendingSessionId(newSessionId)
+            opts?.onSessionCreated?.(newSessionId)
+          }
 
           const reader = res.body.getReader()
           const decoder = new TextDecoder()
