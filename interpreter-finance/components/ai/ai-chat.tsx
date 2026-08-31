@@ -171,7 +171,10 @@ export function AIChat() {
 
   const startNewChat = useCallback(async () => {
     const session = await createSession(model)
-    if (!session) return
+    if (!session?.id) {
+      setError('No se pudo crear la sesión. Por favor, intenta de nuevo.')
+      return
+    }
     setMessages([])
     setError(null)
     spokenIdx.current = -1

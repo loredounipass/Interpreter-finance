@@ -35,6 +35,12 @@ export function useAIChat(opts?: UseAIChatOptions) {
       const text = (overrideText ?? input).trim()
       if (!text || isLoading) return
 
+      // Verificar que haya un sessionId válido si se requiere
+      if (opts?.sessionId === undefined || opts?.sessionId === null) {
+        setError('No hay una sesión activa. Por favor, crea o selecciona una sesión.')
+        return
+      }
+
       const nextMessages: ChatMessage[] = [...messages, { role: 'user', content: text }]
       setMessages([...nextMessages, { role: 'assistant', content: '' }])
       setInput('')

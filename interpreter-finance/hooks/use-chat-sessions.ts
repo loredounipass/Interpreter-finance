@@ -50,18 +50,31 @@ export function useChatSessions() {
 
   const createSession = useCallback(
     async (model: string) => {
-      const headers = await authHeaders()
-      const res = await fetch('/api/chat/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({ model }),
-      })
-      if (!res.ok) return null
-      const data = await res.json()
-      const session: ChatSession = data.session
-      setSessions((prev) => [session, ...prev])
-      setCurrentSessionId(session.id)
-      return session
+      try {
+        const headers = await authHeaders()
+        const res = await fetch('/api/chat/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          body: JSON.stringify({ model }),
+        })
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          console.error('Error al crear sesión:', errorData.error ?? res.statusText)
+          return null
+        }
+        const data = await res.json()
+        if (!data?.session?.id) {
+          console.error('La sesión creada no tiene ID válido:', data)
+          return null
+        }
+        const session: ChatSession = data.session
+        setSessions((prev) => [session, ...prev])
+        setCurrentSessionId(session.id)
+        return session
+      } catch (e) {
+        console.error('Excepción al crear sesión:', e)
+        return null
+      }
     },
     [setCurrentSessionId]
   )
