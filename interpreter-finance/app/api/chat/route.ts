@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch(provider.url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: model.id, messages: fullMessages, temperature: body.temperature ?? 0.2, max_tokens: body.max_tokens ?? 512, stream: true }),
+      body: JSON.stringify({ model: model.id, messages: fullMessages, temperature: body.temperature ?? 0.1, max_tokens: body.max_tokens ?? 512, stream: true }),
     })
 
     if (!response.ok || !response.body) {
