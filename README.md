@@ -1,6 +1,6 @@
 <div align="center">
 
-![Interpreter Finance](./public/apple-icon.png)
+![Interpreter Finance](interpreter-finance/public/apple-icon.png)
 
 # Interpreter Finance
 
