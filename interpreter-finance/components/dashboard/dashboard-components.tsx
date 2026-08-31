@@ -101,7 +101,6 @@ export function Header({ view, onMenu }: { view: View; onMenu: () => void }) {
     <header className="flex items-center justify-between border-b border-white/10 px-5 py-4 lg:px-10">
       <div className="flex items-center gap-3">
         <button className="lg:hidden" onClick={onMenu} aria-label="Open menu"><Menu className="size-5" /></button>
-        <img src="/icon.svg" className="w-6 h-6" alt="Interpreter Finance" />
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">{VIEW_LABELS[view]}</p>
           <h1 className="mt-1 text-lg font-semibold">{greeting}, {firstName}</h1>
