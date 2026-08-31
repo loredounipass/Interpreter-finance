@@ -23,10 +23,14 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>({ user: null, setUser: () => {}, isLoading: true, signOut: async () => {} })
 
+
+// RETRIEVES THE CURRENT USER STATE FROM THE AUTHENTICATION CONTEXT
 export function useAuth() {
   return useContext(AuthContext)
 }
 
+
+// PROVIDES AUTHENTICATION CONTEXT INCLUDING SESSION INITIALIZATION, PROFILE LOADING, AND SIGN-OUT
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null)
   const [isLoading, setIsLoading] = useState(true)

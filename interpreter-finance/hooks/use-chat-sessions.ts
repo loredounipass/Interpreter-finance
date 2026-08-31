@@ -6,11 +6,11 @@ import type { ChatMessage, ChatSession } from './use-ai-chat'
 
 const CURRENT_KEY = 'ai_current_session'
 
+
+// MANAGES PERSISTENT CHAT SESSION LIFECYCLE INCLUDING CREATION, SELECTION, HISTORY LOADING, AND DELETION VIA THE API
 export function useChatSessions() {
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [currentSessionId, setCurrentSessionIdState] = useState<string | null>(null)
-  // Inicia en true para que la carga inicial del chat espere a que terminen
-  // de cargar las sesiones antes de abrir la guardada (y restaurar su modelo).
   const [isLoading, setIsLoading] = useState(true)
 
   const setCurrentSessionId = useCallback((id: string | null) => {
@@ -68,11 +68,8 @@ export function useChatSessions() {
           return null
         }
         const session: ChatSession = data.session
-        // Actualizar primero el estado de sesiones
         setSessions((prev) => [session, ...prev])
-        // Luego establecer como sesión actual
         setCurrentSessionId(session.id)
-        // Retornar la sesión para que el componente padre pueda usarla
         return session
       } catch (e) {
         console.error('Excepción al crear sesión:', e)
@@ -97,12 +94,10 @@ export function useChatSessions() {
       if (!res.ok) return
       setSessions((prev) => {
         const next = prev.filter((s) => s.id !== id)
-        // Si la lista queda vacía, aseguramos que currentSessionId sea null
         if (next.length === 0) {
           setCurrentSessionIdState(null)
           localStorage.removeItem(CURRENT_KEY)
         } else if (id === currentSessionId) {
-          // Si borramos la sesión actual pero quedan otras, seleccionamos la primera
           setCurrentSessionIdState(next[0].id)
           localStorage.setItem(CURRENT_KEY, next[0].id)
         }
@@ -127,7 +122,6 @@ export function useChatSessions() {
 
   useEffect(() => {
     loadSessions()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {

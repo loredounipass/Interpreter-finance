@@ -1,8 +1,7 @@
 import { supabase } from './supabase'
 
-// Headers de autorización para llamar a nuestras API routes desde el cliente.
-// Usa la sesión activa de Supabase (access token) para que el servidor pueda
-// identificar al usuario y aplicar las RLS policies.
+
+// RETURNS AUTHORIZATION HEADERS USING THE CURRENT SUPABASE SESSION TOKEN FOR CLIENT-SIDE API CALLS
 export async function authHeaders(): Promise<Record<string, string>> {
   try {
     const { data } = await supabase.auth.getSession()

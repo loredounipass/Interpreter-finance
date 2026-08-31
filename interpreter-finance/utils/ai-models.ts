@@ -1,5 +1,4 @@
 // REGISTRO DE MODELOS DE IA DISPONIBLES
-// Provider permitido: NVIDIA (solo Nemotron y GPT-OSS).
 
 export interface AIModel {
   key: string

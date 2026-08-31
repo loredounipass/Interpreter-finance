@@ -43,6 +43,8 @@ export type CalendarDay = { day: number; minutes: number }
 export type RecentEntry = { date: string; minutes: number; note: string }
 export type Summary = { total: string; average: string; rate: string; streak: number }
 
+
+// CONVERTS MINUTES INTO A HUMAN-READABLE STRING WITH HOURS AND MINUTES
 export const formatMinutes = (minutes: number) => {
   const h = Math.floor(minutes / 60)
   const m = Number((minutes % 60).toFixed(2))
@@ -53,18 +55,22 @@ export const defaultWorkHours = 15
 export const goalMinutes = 0
 export const defaultGoal = { minutes: 400, label: 'Daily interpretation goal' }
 
-/** Returns today's date as YYYY-MM-DD in LOCAL timezone (not UTC) */
+
+// RETURNS TODAY'S DATE AS A YYYY-MM-DD STRING IN LOCAL TIMEZONE
 export function localToday() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** Returns current month as YYYY-MM in LOCAL timezone */
+
+// RETURNS THE CURRENT MONTH AS A YYYY-MM STRING IN LOCAL TIMEZONE
 export function localMonth() {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
+
+// CALCULATES THE REQUIRED MINUTES PER HOUR TO MEET A DAILY GOAL GIVEN WORK HOURS
 export function getMinutesPerHour(goal: number, workHours = defaultWorkHours) {
   if (workHours <= 0) return 0
   return Number((goal / workHours).toFixed(1))
@@ -75,11 +81,15 @@ export function getWholeMinutesPerHour(goal: number, workHours = defaultWorkHour
   return Math.ceil(goal / workHours)
 }
 
+
+// COMPUTES THE COMPLETION PERCENTAGE OF MINUTES AGAINST A DAILY GOAL
 export function getProgress(minutes: number, goal = goalMinutes) {
   if (goal === 0) return minutes > 0 ? 100 : 0
   return Math.min(Math.round((minutes / goal) * 100), 100)
 }
 
+
+// RETURNS A TIME-OF-DAY GREETING BASED ON THE CURRENT HOUR
 export function getGreeting() {
   const hour = new Date().getHours()
   return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
@@ -110,6 +120,8 @@ export function getDateLabel(day: number) {
   return `${monthName()} ${day}, ${new Date().getFullYear()}`
 }
 
+
+// GENERATES A MOTIVATIONAL SUMMARY MESSAGE BASED ON MONTHLY PERFORMANCE AND GOAL PROGRESS
 export function getSummaryMessage(monthTotal: number, goalMinutes: number, completedDays: number, totalDays: number) {
   if (completedDays === 0) return 'Start your streak today.'
   const avg = Math.round(monthTotal / Math.max(completedDays, 1))
@@ -118,12 +130,16 @@ export function getSummaryMessage(monthTotal: number, goalMinutes: number, compl
   return 'Consistency is key. Every minute counts.'
 }
 
+
+// CALCULATES THE PERCENTAGE CHANGE BETWEEN CURRENT AND PREVIOUS MONTH TOTALS
 export function getWeekDelta(monthTotal: number, prevMonthTotal: number) {
   if (prevMonthTotal === 0) return '+0%'
   const delta = ((monthTotal - prevMonthTotal) / prevMonthTotal * 100)
   return `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%`
 }
 
+
+// COMPUTES AGGREGATE MONTHLY STATISTICS INCLUDING TOTALS, AVERAGES, AND GOAL HIT RATES
 export function computeMonthStats(logs: DailyLog[], goal: number) {
   const monthTotal = logs.reduce((sum, l) => sum + l.minutes, 0)
   const days = logs.length || 1
@@ -139,6 +155,8 @@ function parseLocalDate(dateStr: string) {
   return new Date(y, m - 1, d)
 }
 
+
+// BUILDS CHART DATA POINTS FROM RECENT LOGS, ZEROING OUT VALUES WHEN TODAY'S GOAL IS REACHED
 export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
   const recentLogs = [...logs].slice(0, 14).reverse()
   
@@ -164,6 +182,8 @@ export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
   return points
 }
 
+
+// BUILDS CALENDAR DATA AGGREGATING MINUTES PER DAY FOR THE CURRENT MONTH
 export function buildCalendarData(logs: DailyLog[]): CalendarDay[] {
   const now = new Date()
   const year = now.getFullYear()
@@ -180,6 +200,8 @@ export function buildCalendarData(logs: DailyLog[]): CalendarDay[] {
   return Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, minutes: logMap.get(i + 1) ?? 0 }))
 }
 
+
+// GROUPS DAILY LOGS INTO WEEKLY BUCKETS WITH ACTUAL AND GOAL MINUTES
 export function buildWeeklyData(logs: DailyLog[], goal: number): WeekData[] {
   const weeks: Record<string, { actual: number; goal: number }> = {}
   logs.forEach((l) => {
@@ -191,6 +213,8 @@ export function buildWeeklyData(logs: DailyLog[], goal: number): WeekData[] {
   return Object.entries(weeks).map(([week, data]) => ({ week, actual: data.actual, goal: data.goal }))
 }
 
+
+// BUILD A LIST OF RECENT ENTRIES WITH HUMAN-READABLE DATE LABELS AND NOTES
 export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
   const today = localToday()
   const yd = new Date()
@@ -208,6 +232,8 @@ export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
     })
 }
 
+
+// ROUTES TO THE APPROPRIATE DATA BUILDER BASED ON THE SELECTED TIME PERIOD
 export function getPeriodData(period: Period, logs: DailyLog[], goal: number) {
   if (period === 'day') return buildDayData()
   if (period === 'year') return buildYearData()
@@ -292,7 +318,8 @@ export type EarningsBreakdown = {
   qualifiedDays: { date: string; minutes: number; note: string | null; earnings: number; qualified: boolean }[]
 }
 
-/** Earnings only count on days where the daily goal was met. */
+
+// COMPUTES EARNINGS BREAKDOWN ONLY FOR DAYS WHERE THE DAILY GOAL WAS MET
 export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: number): EarningsBreakdown {
   const earn = (minutes: number) => Number((minutes * ratePerMinute).toFixed(2))
   const today = localToday()

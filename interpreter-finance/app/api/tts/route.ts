@@ -6,7 +6,8 @@ type TTSLanguage = 'es-US' | 'en-US'
 type TTSVoice = 'Diego' | 'Isabela'
 type TTSEmotion = 'default' | 'neutral' | 'calm' | 'happy' | 'angry' | 'pleasantSurprised'
 
-// Expande abreviaturas para que el TTS las lea completas (p.ej. "350 min" -> "350 minutos").
+
+// REPLACES COMMON ABBREVIATIONS (MIN, SEC, H, D, KM) WITH THEIR FULL WORD EQUIVALENTS IN THE TARGET LANGUAGE SO THAT THE TTS ENGINE PRONOUNCES THEM CORRECTLY.
 function normalizeForTTS(input: string, language: TTSLanguage): string {
   const rules: Record<TTSLanguage, [RegExp, string][]> = {
     'es-US': [
@@ -27,6 +28,8 @@ function normalizeForTTS(input: string, language: TTSLanguage): string {
   return rules[language].reduce((acc, [re, repl]) => acc.replace(re, repl), input)
 }
 
+
+// SYNTHESIZES SPEECH AUDIO FROM TEXT USING THE NVIDIA MAGPIE TTS PROVIDER, RETURNING A WAV BUFFER WITH THE REQUESTED VOICE, EMOTION, AND LANGUAGE SETTINGS.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

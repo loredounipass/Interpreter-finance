@@ -23,6 +23,7 @@ interface UseAIChatOptions {
   onSessionCreated?: (id: string) => void
 }
 
+// MANAGES AI CHAT STATE, MESSAGE HISTORY, AND STREAMING COMMUNICATION WITH THE BACKEND API
 export function useAIChat(opts?: UseAIChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [model, setModel] = useState<string>(DEFAULT_MODEL)
@@ -36,7 +37,6 @@ export function useAIChat(opts?: UseAIChatOptions) {
       const text = (overrideText ?? input).trim()
       if (!text || isLoading) return
 
-      // Si no hay sessionId, permitimos continuar para que la API cree uno automáticamente
       const sessionIdToSend = opts?.sessionId ?? pendingSessionId
 
       const nextMessages: ChatMessage[] = [...messages, { role: 'user', content: text }]
@@ -53,7 +53,6 @@ export function useAIChat(opts?: UseAIChatOptions) {
         try {
           const headers = await authHeaders()
           
-          // Verificar si hay token de autenticación
           if (!headers.Authorization && retryCount === 0) {
             setError('No estás autenticado. Por favor, inicia sesión.')
             setMessages(nextMessages)
@@ -72,7 +71,6 @@ export function useAIChat(opts?: UseAIChatOptions) {
             }),
           })
 
-          // Manejar errores de conexión (posible sleep de Render)
           if (!res.ok && res.status === 0) {
             throw new Error('Error de conexión. Reintentando...')
           }
@@ -82,7 +80,6 @@ export function useAIChat(opts?: UseAIChatOptions) {
             throw new Error(data.error ?? 'Error al enviar el mensaje.')
           }
 
-          // El servidor crea la sesión si no se envió una; nos devuelve el id.
           const newSessionId = res.headers.get('X-Session-Id')
           if (newSessionId) {
             setPendingSessionId(newSessionId)
@@ -100,12 +97,10 @@ export function useAIChat(opts?: UseAIChatOptions) {
             setMessages([...nextMessages, { role: 'assistant', content: acc }])
           }
 
-          // Si llegamos aquí, fue exitoso
           break
         } catch (e: unknown) {
           lastError = e instanceof Error ? e : new Error(String(e))
           
-          // Si es error de conexión y podemos reintentar, esperar y continuar
           if (lastError.message.includes('conexión') || lastError.message.includes('fetch') || lastError.message.includes('Failed to fetch')) {
             if (retryCount < maxRetries) {
               retryCount++
@@ -114,7 +109,6 @@ export function useAIChat(opts?: UseAIChatOptions) {
             }
           }
           
-          // Si no es error de conexión o ya reintentamos, mostrar error
           setError(lastError.message)
           setMessages(nextMessages)
           break

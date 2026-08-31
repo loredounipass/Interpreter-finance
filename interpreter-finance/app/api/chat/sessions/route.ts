@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserIdFromRequest } from '@/lib/supabase-server'
 
+
+// RETRIEVES ALL CHAT SESSIONS FOR THE AUTHENTICATED USER, ORDERED BY MOST RECENTLY UPDATED.
 export async function GET(request: NextRequest) {
   const { userId, supabase } = await getUserIdFromRequest(request)
   if (!userId) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
@@ -15,6 +17,8 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ sessions: data })
 }
 
+
+// CREATES A NEW CHAT SESSION WITH THE PROVIDED TITLE AND MODEL, DEFAULTING TO NVIDIA-NEMOTRON.
 export async function POST(request: NextRequest) {
   try {
     const { userId, supabase } = await getUserIdFromRequest(request)

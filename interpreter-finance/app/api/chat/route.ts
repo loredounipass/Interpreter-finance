@@ -6,6 +6,8 @@ import { getUserIdFromRequest } from '@/lib/supabase-server'
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
+
+// HANDLES THE CHAT COMPLETION REQUEST BY VALIDATING THE MODEL, STREAMING THE RESPONSE FROM THE NVIDIA NIM PROVIDER, AND PERSISTING MESSAGES TO SUPABASE AFTER THE STREAM COMPLETES.
 export async function POST(request: NextRequest) {
   try {
     const { userId, supabase } = await getUserIdFromRequest(request)
@@ -55,14 +57,14 @@ export async function POST(request: NextRequest) {
         await supabase.from('chat_messages').insert([
           { session_id: sessionId, user_id: userId, role, content, position },
         ])
-      } catch { /* persistencia optional */ }
+      } catch { }
     }
 
     const updateSession = async () => {
       if (!userId || !supabase || !sessionId) return
       try {
         await supabase.from('chat_sessions').update({ model: modelKey, updated_at: new Date().toISOString() }).eq('id', sessionId)
-      } catch { /* optional */ }
+      } catch { }
     }
 
     const userMsg = messages[messages.length - 1]
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest) {
                 const json = JSON.parse(payload)
                 const delta: string = json?.choices?.[0]?.delta?.content ?? ''
                 if (delta) { acc += delta; controller.enqueue(encoder.encode(delta)) }
-              } catch { /* ignora */ }
+              } catch { }
             }
           }
         } catch {
@@ -98,7 +100,6 @@ export async function POST(request: NextRequest) {
         } finally {
           controller.close()
 
-          // Persistencia best-effort (después del stream, no bloquea).
           if (!userId || !supabase) return
 
           if (!sessionId) {
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
               const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
               const { data: sess, error: sessErr } = await supabase.from('chat_sessions').insert([{ user_id: userId, title, model: modelKey }]).select('id').single()
               if (!sessErr && sess) sessionId = sess.id
-            } catch { /* optional */ }
+      } catch { }
           }
 
           let basePos = 0

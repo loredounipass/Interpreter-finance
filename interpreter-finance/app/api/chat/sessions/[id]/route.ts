@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserIdFromRequest } from '@/lib/supabase-server'
 
+
+// VERIFIES THAT THE REQUESTING USER IS THE OWNER OF THE SPECIFIED SESSION, RETURNING AN ERROR RESPONSE IF NOT AUTHENTICATED, NOT FOUND, OR UNAUTHORIZED.
 async function ownSession(request: NextRequest, id: string) {
   const { userId, supabase } = await getUserIdFromRequest(request)
   if (!userId) {
@@ -20,6 +22,8 @@ async function ownSession(request: NextRequest, id: string) {
   return { userId, supabase, error: null }
 }
 
+
+// RETRIEVES ALL MESSAGES FOR A SPECIFIC SESSION, ORDERED BY POSITION ASCENDING, AFTER VERIFYING OWNERSHIP.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { error, supabase } = await ownSession(request, id)
@@ -35,6 +39,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   return NextResponse.json({ messages: data })
 }
 
+
+// UPDATES THE TITLE AND/OR MODEL OF A SESSION AFTER VERIFYING OWNERSHIP, RETURNING THE UPDATED RECORD.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { error, supabase } = await ownSession(request, id)
@@ -60,6 +66,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   return NextResponse.json({ session: data })
 }
 
+
+// DELETES A CHAT SESSION AND ITS ASSOCIATED MESSAGES AFTER VERIFYING OWNERSHIP.
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { error, supabase } = await ownSession(request, id)

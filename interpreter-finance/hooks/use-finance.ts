@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle, localToday, localMonth } from '@/lib/finance'
 import type { DailyLog } from '@/lib/finance'
 
+
+// PROVIDES FINANCE TRACKING STATE INCLUDING MINUTES, GOALS, EARNINGS, CHART DATA, AND ALL CRUD OPERATIONS FOR DAILY LOGS
 export function useFinance() {
   const [logs, setLogs] = useState<DailyLog[]>([])
   const [goal, setGoal] = useState(goalMinutes)
@@ -14,9 +16,6 @@ export function useFinance() {
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [currentMinutes, setCurrentMinutes] = useState(0)
-  // id of the in-progress session row (is_active = true). Other rows are
-  // archived history that feeds Latest logs and earnings, and never get
-  // overwritten when the counter is reset.
   const [activeLogId, setActiveLogId] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
@@ -57,7 +56,6 @@ export function useFinance() {
         if (goalData.rate_per_minute != null) setRatePerMinute(goalData.rate_per_minute)
       }
     } catch {
-      // ignore
     } finally {
       setIsLoading(false)
     }
@@ -183,8 +181,6 @@ export function useFinance() {
 
   const setMinutes = useCallback((value: number) => {
     if (value === 0) {
-      // Reset: archive the current session row (keep its minutes) so Latest
-      // logs and earnings are preserved, then start a fresh session at 0.
       const archivedId = activeLogId
       if (archivedId) {
         setActiveLogId(null)
@@ -250,7 +246,6 @@ export function useFinance() {
       if (error) throw error
       setLogs((prev) => prev.filter((l) => l.id !== id))
     } catch {
-      // ignore
     }
   }, [])
 

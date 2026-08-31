@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseClient } from '@/lib/supabase-server'
 
+
+// PROXIES INCOMING HTTP REQUESTS TO SUPABASE TABLE OPERATIONS (DAILY_LOGS, GOALS) BASED ON THE URL PATH SEGMENT AND HTTP METHOD.
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const supabase = createSupabaseClient()
   if (!supabase) {

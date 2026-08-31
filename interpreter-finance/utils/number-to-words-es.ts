@@ -1,6 +1,3 @@
-// Convierte numeros a palabras en espanol para el TTS (Magpie no lee bien los digitos).
-// Ej: "350" -> "trescientos cincuenta", "7.4" -> "siete punto cuatro".
-
 const UNITS = [
   'cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
   'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete',
@@ -15,6 +12,8 @@ const HUNDREDS = [
   'seiscientos', 'setecientos', 'ochocientos', 'novecientos',
 ]
 
+
+// CONVERTS AN INTEGER TO ITS SPANISH WORDS REPRESENTATION FOR TTS OUTPUT
 export function integerToWords(n: number): string {
   if (!Number.isFinite(n)) return ''
   n = Math.floor(Math.abs(n))
@@ -43,6 +42,8 @@ export function integerToWords(n: number): string {
   return r === 0 ? head : `${head} ${integerToWords(r)}`
 }
 
+
+// CONVERTS A SINGLE NUMERIC TOKEN INCLUDING DECIMALS TO SPANISH WORDS
 function numberTokenToWords(token: string): string {
   const cleaned = token.replace(/,/g, '')
   if (cleaned.includes('.')) {
@@ -58,6 +59,8 @@ function numberTokenToWords(token: string): string {
   return integerToWords(parseInt(cleaned, 10))
 }
 
+
+// REPLACES ALL NUMERIC TOKENS IN A STRING WITH THEIR SPANISH WORDS EQUIVALENT
 export function numbersToWordsEs(input: string): string {
   return input.replace(/\d[\d.,]*/g, (m) => numberTokenToWords(m))
 }

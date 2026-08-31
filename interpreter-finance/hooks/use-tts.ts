@@ -20,6 +20,8 @@ export const DEFAULT_TTS_SETTINGS: TTSSettings = {
 
 const STORAGE_KEY = 'ai_tts_settings'
 
+
+// PROVIDES TEXT-TO-SPEECH CONTROL INCLUDING NVCF AUDIO STREAMING, PERSISTENT SETTINGS, AND AUDIO PLAYBACK STATE
 export function useTTS() {
   const [enabled, setEnabled] = useState(false)
   const [settings, setSettings] = useState<TTSSettings | null>(null)
@@ -32,7 +34,6 @@ export function useTTS() {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) setSettings(JSON.parse(saved) as TTSSettings)
     } catch {
-      // ignore
     }
   }, [])
 
@@ -41,7 +42,6 @@ export function useTTS() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
     } catch {
-      // ignore
     }
     setDialogOpen(false)
     setEnabled(true)
@@ -86,7 +86,6 @@ export function useTTS() {
         setSpeaking(true)
         audio.play().catch(() => setSpeaking(false))
       } catch {
-        // ignore
       }
     },
     [enabled, settings]
