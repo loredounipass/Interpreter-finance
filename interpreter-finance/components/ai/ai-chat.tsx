@@ -182,6 +182,8 @@ export function AIChat() {
     async (id: string) => {
       const wasCurrent = id === currentSessionId
       await deleteSession(id)
+      // Recargar sesiones para asegurar que el estado esté sincronizado
+      // después de eliminar (útil cuando se borran todas las sesiones).
       if (wasCurrent) {
         setMessages([])
         setError(null)
@@ -204,9 +206,9 @@ export function AIChat() {
   useEffect(() => {
     if (didInitLoad.current || sessionsLoading) return
     didInitLoad.current = true
-    if (currentSessionId) openSession(currentSessionId)
+    if (currentSessionId && sessions.length > 0) openSession(currentSessionId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionsLoading, currentSessionId])
+  }, [sessionsLoading, currentSessionId, sessions.length])
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

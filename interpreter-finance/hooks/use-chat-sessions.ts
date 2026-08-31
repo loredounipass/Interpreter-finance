@@ -26,6 +26,7 @@ export function useChatSessions() {
       const res = await fetch('/api/chat/sessions', { headers })
       if (!res.ok) {
         setSessions([])
+        setCurrentSessionId(null)
         return
       }
       const data = await res.json()
@@ -41,6 +42,7 @@ export function useChatSessions() {
       }
     } catch {
       setSessions([])
+      setCurrentSessionId(null)
     } finally {
       setIsLoading(false)
     }
@@ -75,17 +77,23 @@ export function useChatSessions() {
   const deleteSession = useCallback(
     async (id: string) => {
       const headers = await authHeaders()
-      await fetch(`/api/chat/sessions/${id}`, { method: 'DELETE', headers })
-      setSessions((prev) => prev.filter((s) => s.id !== id))
-      setCurrentSessionIdState((cur) => {
-        if (cur === id) {
+      const res = await fetch(`/api/chat/sessions/${id}`, { method: 'DELETE', headers })
+      if (!res.ok) return
+      setSessions((prev) => {
+        const next = prev.filter((s) => s.id !== id)
+        // Si la lista queda vacía, aseguramos que currentSessionId sea null
+        if (next.length === 0) {
+          setCurrentSessionIdState(null)
           localStorage.removeItem(CURRENT_KEY)
-          return null
+        } else if (id === currentSessionId) {
+          // Si borramos la sesión actual pero quedan otras, seleccionamos la primera
+          setCurrentSessionIdState(next[0].id)
+          localStorage.setItem(CURRENT_KEY, next[0].id)
         }
-        return cur
+        return next
       })
     },
-    []
+    [currentSessionId]
   )
 
   const updateSession = useCallback(async (id: string, updates: { title?: string; model?: string }) => {
