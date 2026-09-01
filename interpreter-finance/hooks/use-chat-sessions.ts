@@ -8,17 +8,20 @@ const CURRENT_KEY = 'ai_current_session'
 
 
 // MANAGES PERSISTENT CHAT SESSION LIFECYCLE INCLUDING CREATION, SELECTION, HISTORY LOADING, AND DELETION VIA THE API
+// HOOK FOR MANAGING PERSISTENT CHAT SESSIONS, INTERACTING WITH THE BACKEND FOR SESSION CRUD OPERATIONS
 export function useChatSessions(isAuthenticated = false) {
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [currentSessionId, setCurrentSessionIdState] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  // UPDATES THE CURRENTLY ACTIVE SESSION ID IN STATE AND PERSISTS IT TO LOCAL STORAGE
   const setCurrentSessionId = useCallback((id: string | null) => {
     setCurrentSessionIdState(id)
     if (id) localStorage.setItem(CURRENT_KEY, id)
     else localStorage.removeItem(CURRENT_KEY)
   }, [])
 
+  // FETCHES ALL CHAT SESSIONS FROM THE BACKEND API AND RESTORES THE LAST ACTIVE SESSION FROM LOCAL STORAGE IF AVAILABLE
   const loadSessions = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -53,6 +56,7 @@ export function useChatSessions(isAuthenticated = false) {
     }
   }, [setCurrentSessionId])
 
+  // CREATES A NEW CHAT SESSION VIA THE BACKEND API AND SETS IT AS THE CURRENTLY ACTIVE SESSION
   const createSession = useCallback(
     async (model: string) => {
       try {
@@ -84,6 +88,7 @@ export function useChatSessions(isAuthenticated = false) {
     [setCurrentSessionId]
   )
 
+  // RETRIEVES THE MESSAGE HISTORY FOR A SPECIFIC CHAT SESSION FROM THE BACKEND API
   const loadHistory = useCallback(async (id: string): Promise<ChatMessage[]> => {
     const headers = await authHeaders()
     const res = await fetch(`/api/chat/sessions/${id}`, { headers })
@@ -92,6 +97,7 @@ export function useChatSessions(isAuthenticated = false) {
     return (data.messages ?? []) as ChatMessage[]
   }, [])
 
+  // DELETES A CHAT SESSION VIA THE BACKEND API AND UPDATES THE LOCAL STATE, FALLING BACK TO ANOTHER SESSION IF THE ACTIVE ONE IS DELETED
   const deleteSession = useCallback(
     async (id: string) => {
       const headers = await authHeaders()
@@ -111,6 +117,7 @@ export function useChatSessions(isAuthenticated = false) {
     [currentSessionId, sessions]
   )
 
+  // UPDATES METADATA (LIKE TITLE OR MODEL) OF AN EXISTING CHAT SESSION VIA THE BACKEND API
   const updateSession = useCallback(async (id: string, updates: { title?: string; model?: string }) => {
     const headers = await authHeaders()
     const res = await fetch(`/api/chat/sessions/${id}`, {

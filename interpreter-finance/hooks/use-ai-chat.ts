@@ -12,6 +12,7 @@ export interface ChatMessage {
 }
 
 let messageIdCounter = 0
+// GENERATES A UNIQUE IDENTIFIER FOR A CHAT MESSAGE USING THE CURRENT TIMESTAMP AND A COUNTER
 function generateMessageId() {
   return `msg_${Date.now()}_${++messageIdCounter}`
 }
@@ -30,6 +31,7 @@ interface UseAIChatOptions {
 }
 
 // MANAGES AI CHAT STATE, MESSAGE HISTORY, AND STREAMING COMMUNICATION WITH THE BACKEND API
+// INITIALIZES AND CONTROLS THE AI CHAT SESSION, HANDLING MESSAGE HISTORY, STREAMING RESPONSES, AND CONNECTION RETRIES
 export function useAIChat(opts?: UseAIChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [model, setModel] = useState<string>(DEFAULT_MODEL)
@@ -41,6 +43,7 @@ export function useAIChat(opts?: UseAIChatOptions) {
   const sessionId = opts?.sessionId
   const onSessionCreated = opts?.onSessionCreated
 
+  // SENDS A USER MESSAGE TO THE BACKEND API, MANAGES STREAMING RESPONSE CHUNKS, AND HANDLES AUTOMATIC RETRIES ON FAILURE
   const send = useCallback(
     async (context?: ChatContext, overrideText?: string) => {
       const text = (overrideText ?? input).trim()
@@ -49,7 +52,8 @@ export function useAIChat(opts?: UseAIChatOptions) {
       const sessionIdToSend = sessionId ?? pendingSessionId
 
       const nextMessages: ChatMessage[] = [...messages, { id: generateMessageId(), role: 'user', content: text }]
-      setMessages([...nextMessages, { id: generateMessageId(), role: 'assistant', content: '' }])
+      const assistantMessageId = generateMessageId()
+      setMessages([...nextMessages, { id: assistantMessageId, role: 'assistant', content: '' }])
       setInput('')
       setError(null)
       setIsLoading(true)
@@ -103,7 +107,7 @@ export function useAIChat(opts?: UseAIChatOptions) {
             const { done, value } = await reader.read()
             if (done) break
             acc += decoder.decode(value, { stream: true })
-            setMessages([...nextMessages, { role: 'assistant', content: acc }])
+            setMessages([...nextMessages, { id: assistantMessageId, role: 'assistant', content: acc }])
           }
 
           break
@@ -129,6 +133,7 @@ export function useAIChat(opts?: UseAIChatOptions) {
     [input, isLoading, messages, model, sessionId, onSessionCreated, pendingSessionId]
   )
 
+  // CLEARS THE CURRENT CHAT MESSAGE HISTORY AND RESETS ANY ACTIVE ERROR STATES
   const clear = useCallback(() => {
     setMessages([])
     setError(null)

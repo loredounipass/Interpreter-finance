@@ -22,6 +22,7 @@ const STORAGE_KEY = 'if_v1_ai_tts_settings'
 
 
 // PROVIDES TEXT-TO-SPEECH CONTROL INCLUDING NVCF AUDIO STREAMING, PERSISTENT SETTINGS, AND AUDIO PLAYBACK STATE
+// HOOK MANAGING TTS STATE, SETTINGS PERSISTENCE, AND INTERACTION WITH THE BACKEND AUDIO SYNTHESIS API
 export function useTTS() {
   const [enabled, setEnabled] = useState(false)
   const [settings, setSettings] = useState<TTSSettings | null>(null)
@@ -37,6 +38,7 @@ export function useTTS() {
     }
   }, [])
 
+  // SAVES TTS CONFIGURATION SETTINGS TO LOCAL STATE AND PERSISTS THEM IN LOCAL STORAGE
   const saveSettings = useCallback((s: TTSSettings) => {
     setSettings(s)
     try {
@@ -47,6 +49,7 @@ export function useTTS() {
     setEnabled(true)
   }, [])
 
+  // TOGGLES THE TTS FEATURE ON OR OFF, PAUSING ANY ACTIVE PLAYBACK AND PROMPTING FOR SETTINGS IF UNCONFIGURED
   const toggle = useCallback(() => {
     if (enabled) {
       setEnabled(false)
@@ -61,6 +64,7 @@ export function useTTS() {
     setEnabled(true)
   }, [enabled, settings])
 
+  // REQUESTS SPEECH SYNTHESIS FROM THE BACKEND API FOR A GIVEN TEXT AND PLAYS THE RESULTING AUDIO STREAM
   const speak = useCallback(
     async (text: string) => {
       if (!enabled || !settings) return

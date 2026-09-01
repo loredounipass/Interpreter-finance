@@ -25,12 +25,14 @@ const AuthContext = createContext<AuthContextType>({ user: null, setUser: () => 
 
 
 // RETRIEVES THE CURRENT USER STATE FROM THE AUTHENTICATION CONTEXT
+// CUSTOM HOOK TO ACCESS THE AUTHENTICATION CONTEXT, PROVIDING USER STATE AND AUTH METHODS
 export function useAuth() {
   return useContext(AuthContext)
 }
 
 
 // PROVIDES AUTHENTICATION CONTEXT INCLUDING SESSION INITIALIZATION, PROFILE LOADING, AND SIGN-OUT
+// AUTHENTICATION PROVIDER COMPONENT THAT INITIALIZES SESSION STATE, LISTENS FOR AUTH CHANGES, AND FETCHES USER PROFILES
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -80,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { subscription.unsubscribe() }
   }, [])
 
+  // SIGNS OUT THE CURRENT USER, CLEARS THE SESSION STATE, AND REDIRECTS TO THE LOGIN PAGE
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
     setUser(null)

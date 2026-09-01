@@ -7,6 +7,7 @@ import type { DailyLog } from '@/lib/finance'
 
 
 // PROVIDES FINANCE TRACKING STATE INCLUDING MINUTES, GOALS, EARNINGS, CHART DATA, AND ALL CRUD OPERATIONS FOR DAILY LOGS
+// CUSTOM HOOK TO MANAGE FINANCIAL TRACKING, GOALS, LOGGING OPERATIONS, AND REAL-TIME DATABASE SUBSCRIPTIONS
 export function useFinance() {
   const [logs, setLogs] = useState<DailyLog[]>([])
   const [goal, setGoal] = useState(goalMinutes)
@@ -17,6 +18,7 @@ export function useFinance() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentMinutes, setCurrentMinutes] = useState(0)
 
+  // FETCHES FINANCIAL LOGS AND ACTIVE GOALS FROM THE DATABASE, UPDATING LOCAL STATE FOR THE CURRENT SESSION
   const fetchData = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -123,6 +125,7 @@ export function useFinance() {
   const todayEarnings = earningsBreakdown.todayEarnings
   const monthEarnings = earningsBreakdown.monthEarnings
 
+  // ASYNCHRONOUSLY LOGS ADDITIONAL PRACTICE MINUTES FOR THE CURRENT DAY AND UPDATES THE BACKEND DATABASE
   const addMinutes = useCallback(async (value: number) => {
     const mins = Number(value.toFixed(2))
     if (mins <= 0) return
@@ -148,9 +151,12 @@ export function useFinance() {
     }
   }, [today])
 
+  // DEPRECATED: DUMMY FUNCTION FOR SETTING EXACT MINUTES
   const setMinutes = useCallback((value: number) => {}, []) // Deprecated
+  // DEPRECATED: DUMMY FUNCTION FOR MANUALLY TRIGGERING A SAVE OPERATION
   const saveMinutes = useCallback(async () => {}, []) // Deprecated
 
+  // UPDATES OR CREATES THE USER'S DAILY GOAL, WORK HOURS, AND RATE PER MINUTE IN THE DATABASE
   const saveGoal = useCallback(async (value: number, hours?: number, rate?: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -188,6 +194,7 @@ export function useFinance() {
     }
   }, [workHours, ratePerMinute])
 
+  // DELETES A SPECIFIC DAILY LOG ENTRY FROM THE DATABASE BY ITS ID
   const deleteEntry = useCallback(async (id: string) => {
     try {
       const { error } = await supabase.from('daily_logs').delete().eq('id', id)
@@ -197,6 +204,7 @@ export function useFinance() {
     }
   }, [])
 
+  // CREATES A NEW DAILY LOG ENTRY IN THE DATABASE WITH THE SPECIFIED MINUTES AND AN OPTIONAL NOTE
   const addEntry = useCallback(async (mins: number, note?: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -210,6 +218,7 @@ export function useFinance() {
     }
   }, [today])
 
+  // UPDATES AN EXISTING DAILY LOG ENTRY'S MINUTES AND NOTE IN THE DATABASE
   const updateEntry = useCallback(async (id: string, minutes: number, note?: string | null) => {
     try {
       const { data, error } = await supabase

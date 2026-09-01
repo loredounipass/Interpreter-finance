@@ -11,6 +11,7 @@ interface SpeechRecognitionResultLike {
 
 
 // IMPLEMENTS CONTINUOUS SPEECH RECOGNITION WITH SILENCE DETECTION, AUTO-SEND ON PAUSE, AND TTS INTERLOCKING FOR HANDS-FREE OPERATION
+// HOOK CONFIGURING WEB SPEECH API RECOGNITION, HANDLING INTERIM/FINAL RESULTS, AND AUTO-DISPATCHING ON SILENCE
 export function useSpeechToText({
   lang = 'es-US',
   onFinal,
@@ -37,6 +38,7 @@ export function useSpeechToText({
   useEffect(() => { blockRef.current = blockListening }, [blockListening])
   const prevBlock = useRef(false)
 
+  // CLEARS THE ACTIVE SILENCE DETECTION TIMER TO PREVENT PREMATURE TRANSCRIPT DISPATCH
   const clearSilence = () => {
     if (silenceTimer.current) {
       clearTimeout(silenceTimer.current)
@@ -48,6 +50,7 @@ export function useSpeechToText({
 
   // Internal: creates and starts a new SpeechRecognition instance
   // Does NOT reset tracking refs — caller decides whether to reset
+  // INITIALIZES WEB SPEECH API RECOGNITION INSTANCE, BINDING EVENT HANDLERS FOR RESULTS AND ERRORS
   const beginRecognition = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) {
@@ -125,6 +128,7 @@ export function useSpeechToText({
   }, [lang, listening])
 
   // Manual start: full reset of all tracking state (user pressed mic button)
+  // RESETS TRANSCRIPT STATE AND TRACKING REFS BEFORE INITIATING A NEW RECOGNITION SESSION
   const start = useCallback(() => {
     pendingRef.current = ''
     deliveredRef.current = ''
@@ -134,6 +138,7 @@ export function useSpeechToText({
   }, [beginRecognition])
 
   // Auto-resume: NO reset — preserves deliveredRef so duplicates are ignored
+  // RESUMES AN ONGOING RECOGNITION SESSION WITHOUT CLEARING ALREADY DELIVERED TRANSCRIPTS
   const resumeSession = useCallback(() => {
     sentRef.current = false
     beginRecognition()
@@ -144,11 +149,13 @@ export function useSpeechToText({
   const resumeRef = useRef<() => void>(() => {})
   useEffect(() => { resumeRef.current = resumeSession }, [resumeSession])
 
+  // SCHEDULES AN AUTOMATIC RESTART OF THE RECOGNITION SESSION AFTER A SPECIFIED DELAY TO ENSURE CONTINUOUS LISTENING
   const scheduleRestart = useCallback((delay: number) => {
     if (restartTimer.current) clearTimeout(restartTimer.current)
     restartTimer.current = setTimeout(() => resumeRef.current(), delay)
   }, [])
 
+  // STOPS THE ACTIVE RECOGNITION SESSION AND CLEARS SILENCE TIMERS; DISARMS AUTO-RESTART IF MANUAL STOP IS REQUESTED
   const stop = useCallback((manual = false) => {
     clearSilence()
     if (manual) {
@@ -158,6 +165,7 @@ export function useSpeechToText({
     recognitionRef.current?.stop()
   }, [])
 
+  // TOGGLES THE SPEECH RECOGNITION SESSION STATE BETWEEN ACTIVE AND STOPPED
   const toggle = useCallback(() => {
     if (listening || armedRef.current) stop(true)
     else start()
