@@ -66,7 +66,7 @@ export function CalendarCard() {
         </div>
         <div className="flex flex-col items-start gap-1 text-[10px] text-muted-foreground">
           <div className="flex items-center gap-1.5"><CheckCircle2 className="size-3 text-green-500" /> <span>goal met</span></div>
-          <div className="flex items-center gap-1.5"><X className="size-3 text-red-500" /> <span>missed & paid</span></div>
+          <div className="flex items-center gap-1.5"><X className="size-3 text-red-500" /> <span>failed goal</span></div>
         </div>
       </div>
       <div className="mt-5 grid grid-cols-7 gap-1.5">
