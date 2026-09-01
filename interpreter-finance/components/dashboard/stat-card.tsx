@@ -4,7 +4,7 @@ import { Glass } from './shared'
 
 const VALUE_SIZES = { sm: 'font-mono text-xl font-medium', md: 'font-mono text-2xl font-medium', lg: 'font-mono text-4xl font-bold', xl: 'font-mono text-5xl font-bold' }
 
-export function StatCard({ label, value, note, icon: Icon, large = false, size }: { label: string; value: string; note: string; icon: React.ElementType; large?: boolean; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
+export function StatCard({ label, value, note, icon: Icon, large = false, size, children }: { label: string; value: string; note: string; icon: React.ElementType; large?: boolean; size?: 'sm' | 'md' | 'lg' | 'xl'; children?: React.ReactNode }) {
   const effective = size ?? (large ? 'xl' : 'md')
   const isLarge = effective === 'xl' || effective === 'lg'
   const labelSize = isLarge ? 'text-sm font-semibold text-muted-foreground' : 'text-xs text-muted-foreground'
@@ -25,6 +25,7 @@ export function StatCard({ label, value, note, icon: Icon, large = false, size }
       </div>
       <p className={`${valueSize} ${earningsValueColor}`} style={{ marginTop: isLarge ? '0.5rem' : '0.25rem' }}>{value}</p>
       {note && <p className={noteSize} style={{ marginTop: isLarge ? '0.25rem' : '0.125rem' }}>{note}</p>}
+      {children && <div className="mt-4 w-full flex-1">{children}</div>}
     </Glass>
   )
 }
