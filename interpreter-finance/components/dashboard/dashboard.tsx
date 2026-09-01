@@ -12,8 +12,9 @@ import { Goals } from './goals'
 import { Insights } from './insights'
 import { Earnings } from './earnings'
 import { ActivityView } from './activity-view'
+import { Downloads } from './downloads'
 
-type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity'
+type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity' | 'Downloads'
 
 const todayFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 
@@ -25,6 +26,7 @@ const VIEW_LABELS: Record<View, string> = {
   Insights: 'Insights',
   'AI chat': 'interpreter AI',
   Activity: 'Activity',
+  Downloads: 'Downloads',
 }
 
 export function Dashboard() {
@@ -35,7 +37,7 @@ export function Dashboard() {
   
   useEffect(() => {
     const saved = localStorage.getItem('dashboard_view') as View
-    if (saved && ['Overview', 'Activity', 'Daily log', 'Goals', 'Earnings', 'Insights', 'AI chat'].includes(saved)) {
+    if (saved && ['Overview', 'Activity', 'Daily log', 'Goals', 'Earnings', 'Insights', 'AI chat', 'Downloads'].includes(saved)) {
       setActive(saved)
     }
   }, [])
@@ -47,7 +49,7 @@ export function Dashboard() {
 
   let content = null;
   if (active !== 'AI chat') {
-    content = active === 'Overview' ? <Operations onNavigate={handleNavigate} /> : active === 'Activity' ? <ActivityView /> : active === 'Daily log' ? <DailyLog onNavigate={handleNavigate} /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : <Insights />;
+    content = active === 'Overview' ? <Operations onNavigate={handleNavigate} /> : active === 'Activity' ? <ActivityView /> : active === 'Daily log' ? <DailyLog onNavigate={handleNavigate} /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : active === 'Downloads' ? <Downloads /> : <Insights />;
   }
 
   return (

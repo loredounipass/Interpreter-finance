@@ -34,7 +34,7 @@ export function useFinance() {
       setLogs(logsData ?? [])
 
       const today = localToday()
-      const todaysLogs = logsData?.filter((l) => l.logged_on === today) || []
+      const todaysLogs = logsData?.filter((l) => l.logged_on.startsWith(today)) || []
       const calculatedTotal = todaysLogs.reduce((sum, l) => sum + l.minutes, 0)
       setCurrentMinutes(calculatedTotal)
 
@@ -81,7 +81,7 @@ export function useFinance() {
   const today = localToday()
 
   const todayTotal = useMemo(
-    () => logs.filter((l) => l.logged_on === today).reduce((sum, l) => sum + l.minutes, 0),
+    () => logs.filter((l) => l.logged_on.startsWith(today)).reduce((sum, l) => sum + l.minutes, 0),
     [logs, today]
   )
 

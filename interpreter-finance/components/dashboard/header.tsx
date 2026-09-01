@@ -3,7 +3,7 @@
 import { Menu } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 
-type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity'
+type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity' | 'Downloads'
 
 const VIEW_LABELS: Record<View, string> = {
   Overview: 'Overview',
@@ -13,6 +13,7 @@ const VIEW_LABELS: Record<View, string> = {
   Insights: 'Insights',
   'AI chat': 'interpreter AI',
   Activity: 'Activity',
+  Downloads: 'Downloads',
 }
 
 export function Header({ view, onMenu }: { view: View; onMenu: () => void }) {

@@ -13,7 +13,7 @@ function MiniProgressChart({ chartData, ratePerMinute }: { chartData: { day: num
   const earningsData = useMemo(() =>
     chartData.map((p) => ({
       day: p.day,
-      earnings: Number((p.minutes * ratePerMinute).toFixed(2)),
+      earnings: p.goal > 0 && p.minutes < p.goal ? 0 : Number((p.minutes * ratePerMinute).toFixed(2)),
     })),
     [chartData, ratePerMinute]
   )

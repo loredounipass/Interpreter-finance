@@ -1,9 +1,9 @@
 'use client'
 
-import { LayoutDashboard, Clock3, Target, BarChart3, Wallet, MessageSquare, ListChecks, Settings2, LogOut, X } from 'lucide-react'
+import { LayoutDashboard, Clock3, Target, BarChart3, Wallet, MessageSquare, ListChecks, Settings2, LogOut, X, Download } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 
-type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity'
+type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity' | 'Downloads'
 
 function SignOutButton() {
   const { signOut } = useAuth()
@@ -21,6 +21,7 @@ const NAV_ITEMS: { key: View; label: string; icon: React.ElementType }[] = [
   { key: 'Goals', label: 'Goals', icon: Target },
   { key: 'Earnings', label: 'Earnings', icon: Wallet },
   { key: 'Insights', label: 'Insights', icon: BarChart3 },
+  { key: 'Downloads', label: 'Downloads', icon: Download },
   { key: 'AI chat', label: 'interpreter AI', icon: MessageSquare },
 ]
 

@@ -144,16 +144,22 @@ function parseLocalDate(dateStr: string) {
 
 // BUILDS CHART DATA POINTS FROM RECENT LOGS — ALWAYS SHOWS REAL DATA
 export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
-  const recentLogs = [...logs].slice(0, 14).reverse()
+  const byDate = new Map<string, number>()
+  for (const l of [...logs].sort((a, b) => a.logged_on.localeCompare(b.logged_on))) {
+    const dKey = l.logged_on.slice(0, 10)
+    byDate.set(dKey, (byDate.get(dKey) || 0) + l.minutes)
+  }
+  
+  const recentLogs = Array.from(byDate.entries()).slice(-14)
 
-  const points = recentLogs.map((l) => ({
-    day: parseLocalDate(l.logged_on).getDate(),
-    minutes: l.minutes,
+  const points = recentLogs.map(([dKey, minutes]) => ({
+    day: parseLocalDate(dKey).getDate(),
+    minutes: minutes,
     goal: goal
   }))
 
   if (points.length === 1) {
-    const d = parseLocalDate(recentLogs[0].logged_on)
+    const d = parseLocalDate(recentLogs[0][0])
     d.setDate(d.getDate() - 1)
     points.unshift({ day: d.getDate(), minutes: 0, goal: goal })
   } else if (points.length === 0) {
@@ -217,12 +223,13 @@ export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
   const grouped = new Map<string, { minutes: number; note: string }>()
   
   for (const l of [...logs].sort((a, b) => a.logged_on.localeCompare(b.logged_on))) {
-    const existing = grouped.get(l.logged_on)
+    const dKey = l.logged_on.slice(0, 10)
+    const existing = grouped.get(dKey)
     if (existing) {
        existing.minutes += l.minutes
        if (!existing.note && l.note) existing.note = l.note
     } else {
-       grouped.set(l.logged_on, { minutes: l.minutes, note: l.note || 'Daily practice' })
+       grouped.set(dKey, { minutes: l.minutes, note: l.note || 'Daily practice' })
     }
   }
 
@@ -282,13 +289,14 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   // Group logs by date first so qualification is checked on per-day totals
   const byDate = new Map<string, { minutes: number; note: string | null; logsList: DailyLog[] }>()
   for (const l of [...logs].sort((a, b) => b.logged_on.localeCompare(a.logged_on))) {
-    const existing = byDate.get(l.logged_on)
+    const dKey = l.logged_on.slice(0, 10)
+    const existing = byDate.get(dKey)
     if (existing) {
       existing.minutes += l.minutes
       if (!existing.note && l.note) existing.note = l.note
       existing.logsList.push(l)
     } else {
-      byDate.set(l.logged_on, { minutes: l.minutes, note: l.note, logsList: [l] })
+      byDate.set(dKey, { minutes: l.minutes, note: l.note, logsList: [l] })
     }
   }
 
@@ -303,10 +311,10 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   }
 
   // Filter logs to only qualified dates
-  const qualified = logs.filter((l) => qualifiedDates.has(l.logged_on))
+  const qualified = logs.filter((l) => qualifiedDates.has(l.logged_on.slice(0, 10)))
 
-  const todayEarnings = qualified.filter((l) => l.logged_on === today).reduce((s, l) => s + earn(l.minutes), 0)
-  const weekEarnings = qualified.filter((l) => l.logged_on >= weekStart && l.logged_on <= today).reduce((s, l) => s + earn(l.minutes), 0)
+  const todayEarnings = qualified.filter((l) => l.logged_on.startsWith(today)).reduce((s, l) => s + earn(l.minutes), 0)
+  const weekEarnings = qualified.filter((l) => l.logged_on.slice(0, 10) >= weekStart && l.logged_on.slice(0, 10) <= today).reduce((s, l) => s + earn(l.minutes), 0)
   const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + earn(l.minutes), 0)
   const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
   const totalEarnings = qualified.reduce((s, l) => s + earn(l.minutes), 0)
