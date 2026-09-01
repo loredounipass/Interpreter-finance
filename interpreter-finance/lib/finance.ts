@@ -264,7 +264,7 @@ export type EarningsBreakdown = {
 }
 
 
-// COMPUTES EARNINGS BREAKDOWN FOR ALL DAYS WITH LOGGED MINUTES — GOAL IS TRACKED BUT DOES NOT BLOCK EARNINGS
+// COMPUTES EARNINGS BREAKDOWN — PAST DAYS ALWAYS COUNT (TIME EXPIRED), TODAY ONLY COUNTS IF GOAL IS MET
 export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: number): EarningsBreakdown {
   const earn = (minutes: number) => Number((minutes * ratePerMinute).toFixed(2))
   const today = localToday()
@@ -290,21 +290,40 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
     }
   }
 
-  // ALL DAYS WITH MINUTES > 0 EARN MONEY — NO GOAL GATE
-  const todayEarnings = logs.filter((l) => l.logged_on.startsWith(today)).reduce((s, l) => s + earn(l.minutes), 0)
-  const weekEarnings = logs.filter((l) => l.logged_on.slice(0, 10) >= weekStart && l.logged_on.slice(0, 10) <= today).reduce((s, l) => s + earn(l.minutes), 0)
-  const monthEarnings = logs.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + earn(l.minutes), 0)
-  const yearEarnings = logs.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
-  const totalEarnings = logs.reduce((s, l) => s + earn(l.minutes), 0)
+  // DETERMINE WHICH DATES QUALIFY FOR EARNINGS:
+  // - PAST DAYS: ALWAYS QUALIFY (TIME EXPIRED, MINUTES MOVE TO EARNINGS REGARDLESS OF GOAL)
+  // - TODAY: ONLY QUALIFIES IF GOAL IS MET (STILL IN PROGRESS OTHERWISE)
+  const qualifiedDates = new Set<string>()
+  for (const [date, d] of byDate) {
+    if (d.minutes <= 0) continue
+    if (date < today) {
+      // PAST DAY — TIME EXPIRED, ALL MINUTES COUNT AS EARNINGS
+      qualifiedDates.add(date)
+    } else if (date === today) {
+      // TODAY — ONLY COUNT IF GOAL IS MET (OR NO GOAL IS SET)
+      if (goal <= 0 || d.minutes >= goal) {
+        qualifiedDates.add(date)
+      }
+    }
+  }
 
-  // QUALIFIED FLAG IS PURELY VISUAL — SHOWS WHETHER THE DAILY GOAL WAS MET
+  // FILTER LOGS TO ONLY QUALIFIED DATES
+  const qualified = logs.filter((l) => qualifiedDates.has(l.logged_on.slice(0, 10)))
+
+  const todayEarnings = qualified.filter((l) => l.logged_on.startsWith(today)).reduce((s, l) => s + earn(l.minutes), 0)
+  const weekEarnings = qualified.filter((l) => l.logged_on.slice(0, 10) >= weekStart && l.logged_on.slice(0, 10) <= today).reduce((s, l) => s + earn(l.minutes), 0)
+  const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + earn(l.minutes), 0)
+  const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
+  const totalEarnings = qualified.reduce((s, l) => s + earn(l.minutes), 0)
+
+  // QUALIFIED FLAG SHOWS WHETHER THE DAY MET THE GOAL (CHECK ICON) OR JUST EXPIRED (CLOCK ICON)
   const qualifiedDays = [...byDate.entries()]
     .slice(0, 14)
     .map(([date, d]) => ({
       date,
       minutes: d.minutes,
       note: d.note,
-      earnings: earn(d.minutes),
+      earnings: qualifiedDates.has(date) ? earn(d.minutes) : 0,
       qualified: goal > 0 ? d.minutes >= goal : d.minutes > 0
     }))
 
