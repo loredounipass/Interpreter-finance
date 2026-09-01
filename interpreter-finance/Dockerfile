@@ -4,7 +4,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@11
 RUN pnpm install
 
 # Rebuild the source code only when needed
@@ -22,7 +22,7 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NVIDIA_API_KEY=$NVIDIA_API_KEY
 
-RUN npm install -g pnpm@9 && pnpm build
+RUN npm install -g pnpm@11 && pnpm build
 
 # Production image, copy all the files and run next
 FROM node:22-alpine AS runner
