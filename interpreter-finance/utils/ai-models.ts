@@ -11,33 +11,6 @@ export interface AIModel {
 }
 
 export const AI_MODELS: Record<string, AIModel> = {
-  'nvidia-nemotron': {
-    key: 'nvidia-nemotron',
-    id: 'nvidia/nemotron-3-nano-30b-a3b',
-    name: 'Nemotron 3 Nano 30B (3B active)',
-    provider: 'NVIDIA',
-    apiProvider: 'nvidia',
-    free: true,
-    modelType: 'chat',
-  },
-  'nvidia-nemotron-mini-4b': {
-    key: 'nvidia-nemotron-mini-4b',
-    id: 'nvidia/nemotron-mini-4b-instruct',
-    name: 'Nemotron Mini 4B Instruct',
-    provider: 'NVIDIA',
-    apiProvider: 'nvidia',
-    free: true,
-    modelType: 'chat',
-  },
-  'mistral-nemotron': {
-    key: 'mistral-nemotron',
-    id: 'mistralai/mistral-nemotron',
-    name: 'Mistral Nemotron',
-    provider: 'NVIDIA',
-    apiProvider: 'nvidia',
-    free: true,
-    modelType: 'chat',
-  },
   'nvidia-gpt-oss': {
     key: 'nvidia-gpt-oss',
     id: 'openai/gpt-oss-20b',
@@ -47,10 +20,28 @@ export const AI_MODELS: Record<string, AIModel> = {
     free: true,
     modelType: 'chat',
   },
+  'nvidia-gpt-oss-120': {
+    key: 'nvidia-gpt-oss-120',
+    id: 'openai/gpt-oss-120b',
+    name: 'GPT-OSS 120B',
+    provider: 'NVIDIA',
+    apiProvider: 'nvidia',
+    free: true,
+    modelType: 'chat',
+  },
+  "nvidia-diffusiongemma": {
+    key: 'nvidia-diffusiongemma',
+    id: "google/diffusiongemma-26b-a4b-it",
+    name: "DiffusionGemma 26B A4B IT",
+    provider: "Google",
+    apiProvider: "nvidia",
+    free: true,
+    modelType: "chat",
+  },
 }
 
 // MODELO POR DEFECTO
-export const DEFAULT_MODEL = 'nvidia-nemotron'
+export const DEFAULT_MODEL = 'nvidia-gpt-oss'
 
 // LISTA ORDENADA PARA EL SELECTOR
 export const AI_MODEL_LIST = Object.values(AI_MODELS)
