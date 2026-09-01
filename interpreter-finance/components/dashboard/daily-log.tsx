@@ -21,7 +21,7 @@ function MiniProgressChart({ chartData, ratePerMinute }: { chartData: { day: num
   if (earningsData.length < 2) return null
 
   return (
-    <div>
+    <div className="mt-4">
       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/70">Progress over time</p>
       <div style={{ width: '100%', height: 56 }}>
         <ResponsiveContainer width="100%" height="100%">
