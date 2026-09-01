@@ -6,7 +6,7 @@ import { useFinance } from '@/hooks/use-finance'
 import { Glass, Eyebrow } from './shared'
 import { DailyLogsDialog } from './daily-logs-dialog'
 
-export function ActivityList() {
+export function ActivityList({ onNavigate }: { onNavigate?: (view: any) => void }) {
   const { recentEntries } = useFinance()
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
 
@@ -14,7 +14,7 @@ export function ActivityList() {
     <Glass className="p-5">
       <div className="flex items-center justify-between">
         <div><Eyebrow>Recent activity</Eyebrow><h2 className="mt-1 text-lg font-semibold">Latest logs</h2></div>
-        <button className="flex items-center gap-1 text-xs text-primary">View all <ArrowUpRight className="size-3.5" /></button>
+        <button onClick={() => onNavigate?.('Activity')} className="flex items-center gap-1 text-xs text-primary hover:underline">View all <ArrowUpRight className="size-3.5" /></button>
       </div>
       <div className="mt-5 flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-1">
         {recentEntries.length === 0 ? (

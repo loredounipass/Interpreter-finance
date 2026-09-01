@@ -64,9 +64,9 @@ export function CalendarCard() {
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1 text-[10px] text-muted-foreground">
-          <div className="flex items-center gap-1.5"><CheckCircle2 className="size-3 text-green-500" /> goal met</div>
-          <div className="flex items-center gap-1.5"><X className="size-3 text-red-500" /> missed & paid</div>
+        <div className="flex flex-col items-start gap-1 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1.5"><CheckCircle2 className="size-3 text-green-500" /> <span>goal met</span></div>
+          <div className="flex items-center gap-1.5"><X className="size-3 text-red-500" /> <span>missed & paid</span></div>
         </div>
       </div>
       <div className="mt-5 grid grid-cols-7 gap-1.5">
@@ -81,17 +81,17 @@ export function CalendarCard() {
           const dayStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`
           const isPastDay = dayStr < todayStr
           
-          let content: React.ReactNode = <span>{cell.day}</span>
-          let className = `grid aspect-square place-items-center rounded-md text-xs `
+          let icon: React.ReactNode = null
+          let className = `relative flex aspect-square items-center justify-center rounded-md text-xs `
           
           if (cell.goalMet) {
-             content = <CheckCircle2 className="size-5 text-green-500" strokeWidth={2.5} />
+             icon = <CheckCircle2 className="size-5 text-green-500" strokeWidth={2.5} />
              className += `bg-green-500/10 `
           } else if (cell.hasEarnings) {
-             content = <X className="size-5 text-red-500" strokeWidth={2.5} />
+             icon = <X className="size-5 text-red-500" strokeWidth={2.5} />
              className += `bg-red-500/10 `
           } else if (isPastDay) {
-             content = <X className="size-5 text-muted-foreground/50" strokeWidth={2} />
+             icon = <X className="size-4 text-muted-foreground/30" strokeWidth={2} />
              className += `bg-white/[0.03] `
           } else {
              className += isToday ? 'font-bold text-primary ring-1 ring-primary bg-primary/10 ' : 'text-muted-foreground bg-white/[0.03] '
@@ -103,7 +103,14 @@ export function CalendarCard() {
               title={cell.minutes > 0 ? `${cell.minutes} min logged` : 'No minutes logged'}
               className={className}
             >
-              {content}
+              {icon ? (
+                <>
+                  <span className="absolute top-1 left-1.5 text-[9px] font-mono opacity-50">{cell.day}</span>
+                  {icon}
+                </>
+              ) : (
+                <span>{cell.day}</span>
+              )}
             </div>
           )
         })}

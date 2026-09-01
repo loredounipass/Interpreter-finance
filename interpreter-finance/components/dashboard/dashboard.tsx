@@ -47,7 +47,7 @@ export function Dashboard() {
 
   let content = null;
   if (active !== 'AI chat') {
-    content = active === 'Overview' ? <Operations /> : active === 'Activity' ? <ActivityView /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : <Insights />;
+    content = active === 'Overview' ? <Operations onNavigate={handleNavigate} /> : active === 'Activity' ? <ActivityView /> : active === 'Daily log' ? <DailyLog onNavigate={handleNavigate} /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : <Insights />;
   }
 
   return (
@@ -65,9 +65,11 @@ export function Dashboard() {
                     {active === 'Overview' ? <>Your practice,<br className="sm:hidden" /> in perspective.</> : VIEW_LABELS[active]}
                   </h2>
                 </div>
-                <button onClick={() => handleNavigate('Daily log')} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20">
-                  <Plus className="size-4" />Log minutes
-                </button>
+                {active !== 'Daily log' && (
+                  <button onClick={() => handleNavigate('Daily log')} className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20">
+                    <Plus className="size-4" />Log minutes
+                  </button>
+                )}
               </div>
               {content}
               <footer className="mt-10 flex justify-between gap-2 border-t border-white/10 pt-5 text-[10px] uppercase tracking-wider text-muted-foreground">

@@ -7,7 +7,7 @@ import { StatCard } from './stat-card'
 import { MonthlyChart } from './monthly-chart'
 import { ActivityList } from './activity-list'
 
-export function Operations() {
+export function Operations({ onNavigate }: { onNavigate?: (view: any) => void }) {
   const { todayTotal, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta, todayEarnings, monthEarnings } = useFinance()
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   return (
@@ -21,7 +21,7 @@ export function Operations() {
       </div>
       <div className="mt-4 flex flex-col gap-4">
         <MonthlyChart />
-        <ActivityList />
+        <ActivityList onNavigate={onNavigate} />
       </div>
     </>
   )

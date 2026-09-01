@@ -57,14 +57,14 @@ function MiniProgressChart({ chartData, ratePerMinute }: { chartData: { day: num
   )
 }
 
-export function DailyLog() {
+export function DailyLog({ onNavigate }: { onNavigate?: (view: any) => void }) {
   const { todayEarnings, chartData, ratePerMinute } = useFinance()
   return (
     <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
       <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note="" icon={BadgeDollarSign} size="lg">
         <MiniProgressChart chartData={chartData} ratePerMinute={ratePerMinute} />
       </StatCard>
-      <GoalCard /><ActivityList /><CalendarCard />
+      <GoalCard /><ActivityList onNavigate={onNavigate} /><CalendarCard />
     </div>
   )
 }
