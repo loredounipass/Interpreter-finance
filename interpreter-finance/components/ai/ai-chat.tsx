@@ -26,6 +26,7 @@ export function AIChat() {
     currentSessionId,
     setCurrentSessionId,
     isLoading: sessionsLoading,
+    loadSessions,
     createSession,
     loadHistory,
     deleteSession,
@@ -36,6 +37,7 @@ export function AIChat() {
     sessionId: currentSessionId,
     onSessionCreated: (id) => {
       setCurrentSessionId(id)
+      loadSessions()
     },
   })
 

@@ -18,6 +18,20 @@ export async function POST(request: NextRequest) {
     const context = (body.context ?? null) as ChatContext | null
     let sessionId = typeof body.sessionId === 'string' ? body.sessionId : ''
 
+    // Create session BEFORE the stream so X-Session-Id header has the correct value
+    if (!sessionId && userId && supabase) {
+      try {
+        const firstUser = [...messages].reverse().find((m) => m.role === 'user')
+        const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
+        const { data: sess, error: sessErr } = await supabase
+          .from('chat_sessions')
+          .insert([{ user_id: userId, title, model: modelKey }])
+          .select('id')
+          .single()
+        if (!sessErr && sess) sessionId = sess.id
+      } catch { }
+    }
+
     const model = AI_MODELS[modelKey]
     if (!model) {
       return NextResponse.json({ error: 'Modelo no encontrado.' }, { status: 400 })
@@ -100,27 +114,16 @@ export async function POST(request: NextRequest) {
         } finally {
           controller.close()
 
-          if (!userId || !supabase) return
-
-          if (!sessionId) {
-            try {
-              const firstUser = [...messages].reverse().find((m) => m.role === 'user')
-              const title = firstUser ? firstUser.content.slice(0, 60) : 'Nueva conversación'
-              const { data: sess, error: sessErr } = await supabase.from('chat_sessions').insert([{ user_id: userId, title, model: modelKey }]).select('id').single()
-              if (!sessErr && sess) sessionId = sess.id
-      } catch { }
-          }
+          if (!userId || !supabase || !sessionId) return
 
           let basePos = 0
-          if (sessionId) {
-            try {
-              const { count } = await supabase.from('chat_messages').select('id', { count: 'exact', head: true }).eq('session_id', sessionId)
-              basePos = count ?? 0
-            } catch { basePos = 0 }
-            await saveMsg(userMsg.role, userMsg.content, basePos + 1)
-            if (acc.trim()) await saveMsg('assistant', acc, basePos + 2)
-            await updateSession()
-          }
+          try {
+            const { count } = await supabase.from('chat_messages').select('id', { count: 'exact', head: true }).eq('session_id', sessionId)
+            basePos = count ?? 0
+          } catch { basePos = 0 }
+          await saveMsg(userMsg.role, userMsg.content, basePos + 1)
+          if (acc.trim()) await saveMsg('assistant', acc, basePos + 2)
+          await updateSession()
         }
       },
     })
