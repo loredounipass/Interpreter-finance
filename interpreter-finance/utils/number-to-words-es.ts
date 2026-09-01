@@ -49,11 +49,8 @@ function numberTokenToWords(token: string): string {
   if (cleaned.includes('.')) {
     const [intPart, fracPart] = cleaned.split('.')
     const intWords = integerToWords(parseInt(intPart || '0', 10))
-    const fracWords = (fracPart ?? '')
-      .split('')
-      .map((d) => UNITS[parseInt(d, 10)] ?? '')
-      .filter(Boolean)
-      .join(' ')
+    const fracNum = parseInt(fracPart || '0', 10)
+    const fracWords = integerToWords(fracNum)
     return `${intWords} punto ${fracWords}`
   }
   return integerToWords(parseInt(cleaned, 10))
