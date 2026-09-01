@@ -17,7 +17,7 @@ export function Earnings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Today" value={`$${todayEarnings.toFixed(2)}`} note="Goal met days only" icon={BadgeDollarSign} />
         <StatCard label="This week" value={`$${weekEarnings.toFixed(2)}`} note="Last 7 days" icon={CalendarDays} />
         <StatCard label="This month" value={`$${monthEarnings.toFixed(2)}`} note="Current month" icon={CalendarRange} />

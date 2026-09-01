@@ -23,7 +23,7 @@ export function ActivityView() {
 
   return (
     <div className="flex flex-col gap-4 relative">
-      <div className="grid divide-y divide-white/[0.1] border-y border-white/[0.1] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard label="Today's total" value={`${Number(todayTotal.toFixed(2))}m`} note="Across all sessions" icon={Clock3} />
         <StatCard label="Month total" value={formatMinutes(monthTotal)} note="This month" icon={ListChecks} />
         <StatCard label="Total days" value={`${recentEntries.length}`} note="Days with logs" icon={ListChecks} />
