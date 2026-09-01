@@ -39,7 +39,7 @@ export function Sidebar({ active, onNavigate, open, onClose }: { active: View; o
       </div>
       <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-8">
         <div>
-          <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Activity</p>
+          <p className="mb-3 px-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Dashboard</p>
           <div className="flex flex-col gap-1">
             {NAV_ITEMS.map((item) => (
               <button key={item.key} onClick={() => { onNavigate(item.key); onClose() }} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${active === item.key ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'}`}>
