@@ -25,10 +25,10 @@ export function ChatMessages({ messages, isLoading, error }: ChatMessagesProps) 
         </div>
       )}
 
-      {messages.map((m, i) => {
+      {messages.map((m) => {
         if (m.role === 'user') {
           return (
-            <div key={i} className="flex justify-end">
+            <div key={m.id} className="flex justify-end">
               <div className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-sm bg-primary px-4 py-2.5 text-[15px] leading-relaxed text-primary-foreground">
                 {m.content}
               </div>
@@ -36,7 +36,7 @@ export function ChatMessages({ messages, isLoading, error }: ChatMessagesProps) 
           )
         }
         return (
-          <div key={i} className="flex gap-3">
+          <div key={m.id} className="flex gap-3">
             <div className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
               <Bot className="size-4" />
             </div>

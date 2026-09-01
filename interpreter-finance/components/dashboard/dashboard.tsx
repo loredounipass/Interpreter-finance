@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Plus } from 'lucide-react'
 import { AIChat } from '@/components/ai/ai-chat'
 import { useFinance } from '@/hooks/use-finance'
@@ -14,6 +14,8 @@ import { Earnings } from './earnings'
 import { ActivityView } from './activity-view'
 
 type View = 'Overview' | 'Daily log' | 'Goals' | 'Earnings' | 'Insights' | 'AI chat' | 'Activity'
+
+const todayFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 
 const VIEW_LABELS: Record<View, string> = {
   Overview: 'Overview',
@@ -29,6 +31,7 @@ export function Dashboard() {
   const [active, setActive] = useState<View>('Overview')
   const [menuOpen, setMenuOpen] = useState(false)
   const { summaryMessage } = useFinance()
+  const todayStr = useMemo(() => todayFormatter.format(new Date()), [])
   
   useEffect(() => {
     const saved = localStorage.getItem('dashboard_view') as View
@@ -53,7 +56,7 @@ export function Dashboard() {
             {active !== 'AI chat' && (
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{todayStr}</p>
                   <h2 className="mt-2 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
                     {active === 'Overview' ? <>Your practice,<br className="sm:hidden" /> in perspective.</> : VIEW_LABELS[active]}
                   </h2>
@@ -66,7 +69,7 @@ export function Dashboard() {
             {content}
             {active !== 'AI chat' && (
               <footer className="mt-10 flex justify-between gap-2 border-t border-white/10 pt-5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                <span>Interpreter Finance · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <span>Interpreter Finance · {todayStr}</span>
                 <span>{summaryMessage}</span>
               </footer>
             )}

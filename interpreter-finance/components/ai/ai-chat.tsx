@@ -72,7 +72,7 @@ export function AIChat() {
       setInput(text)
       send(context, text)
     },
-    [context, send, tts.speaking]
+    [context, send, setInput, tts.speaking]
   )
 
   const stt = useSpeechToText({
@@ -83,7 +83,7 @@ export function AIChat() {
 
   useEffect(() => {
     if (stt.listening) setInput(stt.transcript)
-  }, [stt.transcript, stt.listening])
+  }, [stt.transcript, stt.listening, setInput])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -94,10 +94,11 @@ export function AIChat() {
       const lastIdx = messages.reduce((acc, m, i) => (m.role === 'assistant' ? i : acc), -1)
       spokenIdx.current = lastIdx
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tts.enabled])
 
   const speakRef = useRef(tts.speak)
-  speakRef.current = tts.speak
+  useEffect(() => { speakRef.current = tts.speak }, [tts.speak])
   useEffect(() => {
     if (isLoading || !tts.enabled) return
     const lastIdx = messages.reduce((acc, m, i) => (m.role === 'assistant' ? i : acc), -1)
@@ -143,7 +144,7 @@ export function AIChat() {
         spokenIdx.current = -1
       }
     },
-    [deleteSession, currentSessionId, setMessages]
+    [deleteSession, currentSessionId, setMessages, setError]
   )
 
   const onModelChange = useCallback(
@@ -159,6 +160,7 @@ export function AIChat() {
     if (didInitLoad.current || sessionsLoading) return
     didInitLoad.current = true
     if (currentSessionId && sessions.length > 0) openSession(currentSessionId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionsLoading, currentSessionId, sessions.length])
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

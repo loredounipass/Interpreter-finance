@@ -2,12 +2,13 @@
 
 import { Glass } from './shared'
 
+const VALUE_SIZES = { sm: 'font-mono text-xl font-medium', md: 'font-mono text-2xl font-medium', lg: 'font-mono text-4xl font-bold', xl: 'font-mono text-5xl font-bold' }
+
 export function StatCard({ label, value, note, icon: Icon, large = false, size }: { label: string; value: string; note: string; icon: React.ElementType; large?: boolean; size?: 'sm' | 'md' | 'lg' | 'xl' }) {
-  const valueSizes = { sm: 'font-mono text-xl font-medium', md: 'font-mono text-2xl font-medium', lg: 'font-mono text-4xl font-bold', xl: 'font-mono text-5xl font-bold' }
   const effective = size ?? (large ? 'xl' : 'md')
   const isLarge = effective === 'xl' || effective === 'lg'
   const labelSize = isLarge ? 'text-sm font-semibold text-muted-foreground' : 'text-xs text-muted-foreground'
-  const valueSize = valueSizes[effective]
+  const valueSize = VALUE_SIZES[effective]
   const noteSize = isLarge ? 'text-base text-muted-foreground' : 'text-xs text-muted-foreground'
   const iconSize = isLarge ? 'size-6' : 'size-4'
   

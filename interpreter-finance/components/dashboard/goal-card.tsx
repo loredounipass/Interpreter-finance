@@ -54,7 +54,7 @@ export function GoalCard() {
         <span className="font-mono text-sm text-primary">{progress}%</span>
       </div>
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {[15, 30, 45].map((value) => (
@@ -70,6 +70,7 @@ export function GoalCard() {
             min="0.01" 
             step="any"
             placeholder="custom"
+            aria-label="Custom minutes"
             value={draftMins} 
             onChange={(e) => setDraftMins(e.target.value)} 
             className="w-14 bg-transparent font-mono text-xs outline-none placeholder:text-muted-foreground/30" 

@@ -18,7 +18,7 @@ export const DEFAULT_TTS_SETTINGS: TTSSettings = {
   emotion: 'neutral',
 }
 
-const STORAGE_KEY = 'ai_tts_settings'
+const STORAGE_KEY = 'if_v1_ai_tts_settings'
 
 
 // PROVIDES TEXT-TO-SPEECH CONTROL INCLUDING NVCF AUDIO STREAMING, PERSISTENT SETTINGS, AND AUDIO PLAYBACK STATE

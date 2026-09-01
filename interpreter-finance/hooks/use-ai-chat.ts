@@ -6,8 +6,14 @@ import type { ChatContext } from '@/utils/ai-system-prompt'
 import { authHeaders } from '@/lib/api-auth'
 
 export interface ChatMessage {
+  id: string
   role: 'user' | 'assistant' | 'system'
   content: string
+}
+
+let messageIdCounter = 0
+function generateMessageId() {
+  return `msg_${Date.now()}_${++messageIdCounter}`
 }
 
 export interface ChatSession {
@@ -32,15 +38,18 @@ export function useAIChat(opts?: UseAIChatOptions) {
   const [error, setError] = useState<string | null>(null)
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null)
 
+  const sessionId = opts?.sessionId
+  const onSessionCreated = opts?.onSessionCreated
+
   const send = useCallback(
     async (context?: ChatContext, overrideText?: string) => {
       const text = (overrideText ?? input).trim()
       if (!text || isLoading) return
 
-      const sessionIdToSend = opts?.sessionId ?? pendingSessionId
+      const sessionIdToSend = sessionId ?? pendingSessionId
 
-      const nextMessages: ChatMessage[] = [...messages, { role: 'user', content: text }]
-      setMessages([...nextMessages, { role: 'assistant', content: '' }])
+      const nextMessages: ChatMessage[] = [...messages, { id: generateMessageId(), role: 'user', content: text }]
+      setMessages([...nextMessages, { id: generateMessageId(), role: 'assistant', content: '' }])
       setInput('')
       setError(null)
       setIsLoading(true)
@@ -83,7 +92,7 @@ export function useAIChat(opts?: UseAIChatOptions) {
           const newSessionId = res.headers.get('X-Session-Id')
           if (newSessionId) {
             setPendingSessionId(newSessionId)
-            opts?.onSessionCreated?.(newSessionId)
+            onSessionCreated?.(newSessionId)
           }
 
           const reader = res.body.getReader()
@@ -117,7 +126,7 @@ export function useAIChat(opts?: UseAIChatOptions) {
 
       setIsLoading(false)
     },
-    [input, isLoading, messages, model, opts]
+    [input, isLoading, messages, model, sessionId, onSessionCreated, pendingSessionId]
   )
 
   const clear = useCallback(() => {

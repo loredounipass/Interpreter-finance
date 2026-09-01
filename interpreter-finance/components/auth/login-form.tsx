@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { createProfile } from '@/lib/profiles'
+import { authHeaders } from '@/lib/api-auth'
 import { AuthSuccessScreen } from './auth-success-screen'
-import { AuthFormFields } from './auth-form-fields'
+import { LoginFormFields, RegisterFormFields } from './auth-form-fields'
 
 export function LoginForm() {
   const router = useRouter()
@@ -15,8 +15,6 @@ export function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [verifyPassword, setVerifyPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showVerifyPassword, setShowVerifyPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
@@ -66,10 +64,16 @@ export function LoginForm() {
         }
 
         if (signUpData.user) {
-          const { error: profileError } = await createProfile(signUpData.user.id, firstName, lastName, email)
+          const headers = await authHeaders()
+          const profileRes = await fetch('/api/profiles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...headers },
+            body: JSON.stringify({ firstName, lastName, email }),
+          })
 
-          if (profileError) {
-            setError(profileError.message)
+          if (!profileRes.ok) {
+            const profileData = await profileRes.json().catch(() => ({}))
+            setError(profileData.error || 'Failed to create profile')
             setLoading(false)
             return
           }
@@ -108,23 +112,27 @@ export function LoginForm() {
           <p className="mt-1 text-sm text-muted-foreground">{mode === 'login' ? 'Sign in to your account' : 'Start tracking your practice'}</p>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <AuthFormFields
-            mode={mode}
-            firstName={firstName}
-            onFirstNameChange={setFirstName}
-            lastName={lastName}
-            onLastNameChange={setLastName}
-            email={email}
-            onEmailChange={setEmail}
-            password={password}
-            onPasswordChange={setPassword}
-            showPassword={showPassword}
-            onTogglePassword={() => setShowPassword(!showPassword)}
-            verifyPassword={verifyPassword}
-            onVerifyPasswordChange={setVerifyPassword}
-            showVerifyPassword={showVerifyPassword}
-            onToggleVerifyPassword={() => setShowVerifyPassword(!showVerifyPassword)}
-          />
+          {mode === 'register' ? (
+            <RegisterFormFields
+              firstName={firstName}
+              onFirstNameChange={setFirstName}
+              lastName={lastName}
+              onLastNameChange={setLastName}
+              email={email}
+              onEmailChange={setEmail}
+              password={password}
+              onPasswordChange={setPassword}
+              verifyPassword={verifyPassword}
+              onVerifyPasswordChange={setVerifyPassword}
+            />
+          ) : (
+            <LoginFormFields
+              email={email}
+              onEmailChange={setEmail}
+              password={password}
+              onPasswordChange={setPassword}
+            />
+          )}
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60">
             {loading ? 'Signing in...' : mode === 'login' ? 'Sign in' : 'Create account'}

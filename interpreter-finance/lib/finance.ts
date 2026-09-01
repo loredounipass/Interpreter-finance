@@ -1,5 +1,3 @@
-export type Period = 'day' | 'month' | 'year'
-
 export type FinanceEntry = {
   date: string
   minutes: number
@@ -41,7 +39,12 @@ export type WeekData = { week: string; actual: number; goal: number }
 export type ChartPoint = { day: number; minutes: number; goal: number }
 export type CalendarDay = { day: number; minutes: number }
 export type RecentEntry = { date: string; minutes: number; note: string }
-export type Summary = { total: string; average: string; rate: string; streak: number }
+
+
+// HOISTED INTL FORMATTERS TO AVOID REBUILDING ON EACH CALL
+const monthYearFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+const longDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 
 
 // CONVERTS MINUTES INTO A HUMAN-READABLE STRING WITH HOURS AND MINUTES
@@ -53,7 +56,6 @@ export const formatMinutes = (minutes: number) => {
 }
 export const defaultWorkHours = 15
 export const goalMinutes = 0
-export const defaultGoal = { minutes: 400, label: 'Daily interpretation goal' }
 
 
 // RETURNS TODAY'S DATE AS A YYYY-MM-DD STRING IN LOCAL TIMEZONE
@@ -95,29 +97,13 @@ export function getGreeting() {
   return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 }
 
-export function getMonthLabel() {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date())
-}
-
-export function monthName(monthIndex?: number) {
+function monthName(monthIndex?: number) {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   return months[monthIndex ?? new Date().getMonth()]
 }
 
-export function getCurrentDate() {
-  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date())
-}
-
-export function getCurrentDateLabel() {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date())
-}
-
 export function getMonthTitle() {
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date())
-}
-
-export function getDateLabel(day: number) {
-  return `${monthName()} ${day}, ${new Date().getFullYear()}`
+  return monthYearFormatter.format(new Date())
 }
 
 
@@ -159,12 +145,11 @@ function parseLocalDate(dateStr: string) {
 // BUILDS CHART DATA POINTS FROM RECENT LOGS, ZEROING OUT VALUES WHEN TODAY'S GOAL IS REACHED
 export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
   const recentLogs = [...logs].slice(0, 14).reverse()
-  
-  // Check if today's goal has been reached
+
   const today = localToday()
   const todayLog = logs.find((l) => l.logged_on === today)
   const goalReached = todayLog && todayLog.minutes >= goal && goal > 0
-  
+
   const points = recentLogs.map((l) => ({
     day: parseLocalDate(l.logged_on).getDate(),
     minutes: goalReached ? 0 : l.minutes,
@@ -233,81 +218,11 @@ export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
 }
 
 
-// ROUTES TO THE APPROPRIATE DATA BUILDER BASED ON THE SELECTED TIME PERIOD
-export function getPeriodData(period: Period, logs: DailyLog[], goal: number) {
-  if (period === 'day') return buildDayData()
-  if (period === 'year') return buildYearData()
-  return buildWeeklyData(logs, goal)
-}
-
-export function buildDayData(): ChartPoint[] {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const goal = 60
-  return days.map((day, index) => ({ day: index + 1, minutes: [62, 74, 55, 88, 69, 42, 51][index], goal }))
-}
-
-export function buildYearData(): WeekData[] {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug']
-  return months.map((month, index) => ({ week: month, actual: 420 + index * 53, goal: 420 }))
-}
-
-export function aggregateByMonth(logs: DailyLog[]): Record<string, number> {
-  const map: Record<string, number> = {}
-  logs.forEach((l) => { const m = l.logged_on.slice(0, 7); map[m] = (map[m] || 0) + l.minutes })
-  return map
-}
-
-export function aggregateByYear(logs: DailyLog[]): Record<string, number> {
-  const map: Record<string, number> = {}
-  logs.forEach((l) => { const y = l.logged_on.slice(0, 4); map[y] = (map[y] || 0) + l.minutes })
-  return map
-}
-
-export const cn = (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' ')
-
-export const dayOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-export const navItems = [
-  { label: 'Overview', icon: 'LayoutDashboard' }, { label: 'Daily log', icon: 'Clock3' },
-  { label: 'Goals', icon: 'Target' }, { label: 'Insights', icon: 'ChartNoAxesCombined' },
-]
-
-export const sidebarSections = [{ label: 'Workspace', items: navItems }, { label: 'Manage', items: [{ label: 'Settings', icon: 'Settings2' }] }]
-
-export const quickAddOptions = [15, 30, 45, 60]
-
-export const statCopy = { total: 'Time interpreted this month', average: 'Average per working day', rate: 'Days hitting your goal', streak: 'Current day streak' }
-
-export const chartLabels = { minutes: 'Minutes', goal: 'Daily goal' }
-
-export const appName = 'Interpreter Finance'
-export const appTagline = 'Your practice, quantified.'
-export const footerText = 'Built for interpreters who keep showing up.'
-
-export const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const
-export const routeDescription = 'All finance data is routed through Supabase.'
-export const source = 'supabase'
-export const locale = 'en-US'
-export const currency = 'USD'
-
-export const goalLabel = `${goalMinutes} min / day`
-
-export const isValidMinutes = (value: number) => Number.isFinite(value) && value >= 0 && value <= 1440
-export const normalizeMinutes = (value: number) => Math.round(Math.max(0, Math.min(value, 1440)))
-export const percentageLabel = (value: number) => `${Math.round(value)}%`
-export const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 export function sumMinutes(entries: FinanceEntry[]) { return entries.reduce((sum, item) => sum + item.minutes, 0) }
-export function averageMinutes(entries: FinanceEntry[]) { return entries.length ? Math.round(sumMinutes(entries) / entries.length) : 0 }
-export function hitRate(entries: FinanceEntry[], goal = goalMinutes) { return entries.length ? Math.round((entries.filter((item) => item.minutes >= goal).length / entries.length) * 100) : 0 }
-export function toHours(minutes: number) { return Number((minutes / 60).toFixed(1)) }
-export function toPercent(value: number, total: number) { return total ? Math.round((value / total) * 100) : 0 }
 
-export function formatDate(date: string) { return new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`)) }
-export function formatLongDate(date: string) { return new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(`${date}T12:00:00`)) }
+export function dateKey(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` }
 
-export function getMonthlyGoal(goal = goalMinutes, days = 31) { return goal * days }
-
-export function hasHitGoal(minutes: number, goal = goalMinutes) { return minutes >= goal }
+export function formatLongDate(date: string) { return longDateFormatter.format(new Date(`${date}T12:00:00`)) }
 
 export type EarningsBreakdown = {
   todayEarnings: number
@@ -364,12 +279,3 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
 
   return { todayEarnings, weekEarnings, monthEarnings, yearEarnings, totalEarnings, qualifiedDays }
 }
-
-export type NavItem = typeof navItems[number]
-export type RecentEntryData = RecentEntry
-
-export const empty = null
-export const placeholder = '—' as const
-export const noOp = () => undefined
-export const isComplete = true
-export const done = true

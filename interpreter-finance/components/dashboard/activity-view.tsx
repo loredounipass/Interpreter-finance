@@ -7,6 +7,14 @@ import { formatMinutes } from '@/lib/finance'
 import { StatCard } from './stat-card'
 import { Glass, Eyebrow } from './shared'
 
+const shortDateTimeFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+
+function fmtDate(iso: string) {
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? iso : shortDateTimeFormatter.format(d) + ' ' + timeFormatter.format(d)
+}
+
 export function ActivityView() {
   const { logs, updateEntry, deleteEntry, todayTotal, monthTotal } = useFinance()
 
@@ -19,11 +27,6 @@ export function ActivityView() {
     () => [...logs].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at))),
     [logs]
   )
-
-  const fmtDate = (iso: string) => {
-    const d = new Date(iso)
-    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  }
 
   const startEdit = (id: string, minutes: number, note: string | null) => {
     setEditId(id)
@@ -70,12 +73,14 @@ export function ActivityView() {
                           type="number" min="0" step="any" inputMode="decimal"
                           value={editMins} onChange={(ev) => setEditMins(ev.target.value)}
                           onKeyDown={(ev) => ev.key === 'Enter' && saveEdit()}
+                          aria-label="Minutes"
                           className="w-20 rounded-lg border border-primary/30 bg-white/[0.05] px-2 py-1.5 font-mono text-sm outline-none"
                         />
                         <input
                           type="text" value={editNote} onChange={(ev) => setEditNote(ev.target.value)}
                           onKeyDown={(ev) => ev.key === 'Enter' && saveEdit()}
                           placeholder="Note"
+                          aria-label="Note"
                           className="min-w-[140px] flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 text-sm outline-none focus:border-primary/50"
                         />
                         <span className="text-xs text-muted-foreground">{fmtDate(e.updated_at)}</span>

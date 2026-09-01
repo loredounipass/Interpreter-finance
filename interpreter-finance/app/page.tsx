@@ -11,6 +11,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!isLoading && !user) {
+      // eslint-disable-next-line react-doctor/nextjs-no-client-side-redirect
       router.replace('/login')
     }
   }, [isLoading, user, router])

@@ -79,6 +79,7 @@ export function ChatInput({
             onKeyDown={onKeyDown}
             rows={1}
             placeholder="Escribe un mensaje..."
+            aria-label="Escribe un mensaje"
             className="max-h-40 min-h-[1.75rem] min-w-0 flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-relaxed outline-none placeholder:text-muted-foreground"
           />
           <button

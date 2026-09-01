@@ -49,6 +49,7 @@ export function ChatHeader({
         <select
           value={model}
           onChange={(e) => onModelChange(e.target.value)}
+          aria-label="Select AI model"
           className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 font-mono text-xs text-foreground outline-none focus:border-primary/50 sm:flex-none sm:px-3"
         >
           {AI_MODEL_LIST.map((m) => (

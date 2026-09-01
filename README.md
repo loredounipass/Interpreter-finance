@@ -136,6 +136,13 @@ NVIDIA_API_KEY=nvapi-your-nvidia-api-key
 pnpm dev
 ```
 
+### 5. Fix TypeScript Issues and bugs
+
+```bash
+npx -y react-doctor@latest .
+```
+
+
 Open [http://localhost:3000](http://localhost:3000).
 
 ---

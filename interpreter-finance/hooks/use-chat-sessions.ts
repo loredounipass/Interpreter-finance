@@ -92,19 +92,18 @@ export function useChatSessions() {
       const headers = await authHeaders()
       const res = await fetch(`/api/chat/sessions/${id}`, { method: 'DELETE', headers })
       if (!res.ok) return
-      setSessions((prev) => {
-        const next = prev.filter((s) => s.id !== id)
-        if (next.length === 0) {
-          setCurrentSessionIdState(null)
-          localStorage.removeItem(CURRENT_KEY)
-        } else if (id === currentSessionId) {
-          setCurrentSessionIdState(next[0].id)
-          localStorage.setItem(CURRENT_KEY, next[0].id)
-        }
-        return next
-      })
+      const prevSessions = sessions
+      const next = prevSessions.filter((s) => s.id !== id)
+      setSessions(next)
+      if (next.length === 0) {
+        setCurrentSessionIdState(null)
+        localStorage.removeItem(CURRENT_KEY)
+      } else if (id === currentSessionId) {
+        setCurrentSessionIdState(next[0].id)
+        localStorage.setItem(CURRENT_KEY, next[0].id)
+      }
     },
-    [currentSessionId]
+    [currentSessionId, sessions]
   )
 
   const updateSession = useCallback(async (id: string, updates: { title?: string; model?: string }) => {

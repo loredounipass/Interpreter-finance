@@ -31,10 +31,10 @@ export function useSpeechToText({
   const deliveredRef = useRef('')
   const sentRef = useRef(false)
   const onFinalRef = useRef(onFinal)
-  onFinalRef.current = onFinal
+  useEffect(() => { onFinalRef.current = onFinal }, [onFinal])
   const armedRef = useRef(false)
   const blockRef = useRef(blockListening)
-  blockRef.current = blockListening
+  useEffect(() => { blockRef.current = blockListening }, [blockListening])
   const prevBlock = useRef(false)
 
   const clearSilence = () => {
@@ -126,7 +126,7 @@ export function useSpeechToText({
     }
   }, [lang, listening])
 
-  startRef.current = start
+  useEffect(() => { startRef.current = start }, [start])
 
   const scheduleRestart = useCallback((delay: number) => {
     if (restartTimer.current) clearTimeout(restartTimer.current)
@@ -164,6 +164,7 @@ export function useSpeechToText({
   useEffect(
     () => () => {
       clearSilence()
+      if (restartTimer.current) clearTimeout(restartTimer.current)
       recognitionRef.current?.stop()
     },
     []
