@@ -45,15 +45,19 @@ export function Dashboard() {
     localStorage.setItem('dashboard_view', view)
   }
 
-  const content = active === 'Overview' ? <Operations /> : active === 'Activity' ? <ActivityView /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : active === 'AI chat' ? <AIChat /> : <Insights />
+  let content = null;
+  if (active !== 'AI chat') {
+    content = active === 'Overview' ? <Operations /> : active === 'Activity' ? <ActivityView /> : active === 'Daily log' ? <DailyLog /> : active === 'Goals' ? <Goals /> : active === 'Earnings' ? <Earnings /> : <Insights />;
+  }
+
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className="flex h-full">
         <Sidebar active={active} onNavigate={handleNavigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="min-w-0 flex-1 flex flex-col h-full overflow-y-auto">
           <Header view={active} onMenu={() => setMenuOpen(true)} />
-          <main className={active === 'AI chat' ? 'w-full flex-1 min-h-0 p-0' : 'mx-auto w-full max-w-[1280px] flex-1 p-4 lg:p-7'}>
-            {active !== 'AI chat' && (
+          <main className={active === 'AI chat' ? 'w-full flex-1 min-h-0 p-0 flex flex-col' : 'mx-auto w-full max-w-[1280px] flex-1 p-4 lg:p-7 flex flex-col'}>
+            <div className={active === 'AI chat' ? 'hidden' : 'contents'}>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
                   <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{todayStr}</p>
@@ -65,14 +69,15 @@ export function Dashboard() {
                   <Plus className="size-4" />Log minutes
                 </button>
               </div>
-            )}
-            {content}
-            {active !== 'AI chat' && (
+              {content}
               <footer className="mt-10 flex justify-between gap-2 border-t border-white/10 pt-5 text-[10px] uppercase tracking-wider text-muted-foreground">
                 <span>Interpreter Finance · {todayStr}</span>
                 <span>{summaryMessage}</span>
               </footer>
-            )}
+            </div>
+            <div className={active === 'AI chat' ? 'flex-1 min-h-0 w-full flex flex-col' : 'hidden'}>
+              <AIChat />
+            </div>
           </main>
         </div>
       </div>
