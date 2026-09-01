@@ -46,7 +46,9 @@ export function useSpeechToText({
 
   const startRef = useRef<() => void>(() => {})
 
-  const start = useCallback(() => {
+  // Internal: creates and starts a new SpeechRecognition instance
+  // Does NOT reset tracking refs — caller decides whether to reset
+  const beginRecognition = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SR) {
       console.warn('Web Speech API no esta soportada en este navegador (usa Chrome/Edge).')
@@ -54,10 +56,6 @@ export function useSpeechToText({
     }
     if (blockRef.current) return
     if (startingRef.current || listening) return
-    pendingRef.current = ''
-    deliveredRef.current = ''
-    sentRef.current = false
-    setTranscript('')
     armedRef.current = true
     setArmed(true)
     const recognition = new SR()
@@ -126,11 +124,29 @@ export function useSpeechToText({
     }
   }, [lang, listening])
 
+  // Manual start: full reset of all tracking state (user pressed mic button)
+  const start = useCallback(() => {
+    pendingRef.current = ''
+    deliveredRef.current = ''
+    sentRef.current = false
+    setTranscript('')
+    beginRecognition()
+  }, [beginRecognition])
+
+  // Auto-resume: NO reset — preserves deliveredRef so duplicates are ignored
+  const resumeSession = useCallback(() => {
+    sentRef.current = false
+    beginRecognition()
+  }, [beginRecognition])
+
   useEffect(() => { startRef.current = start }, [start])
+
+  const resumeRef = useRef<() => void>(() => {})
+  useEffect(() => { resumeRef.current = resumeSession }, [resumeSession])
 
   const scheduleRestart = useCallback((delay: number) => {
     if (restartTimer.current) clearTimeout(restartTimer.current)
-    restartTimer.current = setTimeout(() => startRef.current(), delay)
+    restartTimer.current = setTimeout(() => resumeRef.current(), delay)
   }, [])
 
   const stop = useCallback((manual = false) => {
