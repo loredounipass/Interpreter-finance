@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle, localToday, localMonth } from '@/lib/finance'
+import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle, localToday, localMonth, computeEarnings } from '@/lib/finance'
 import type { DailyLog } from '@/lib/finance'
 
 
@@ -116,14 +116,12 @@ export function useFinance() {
 
   const progress = useMemo(() => getProgress(currentMinutes, goal), [currentMinutes, goal])
 
-  const todayEarnings = useMemo(() => Number((todayTotal * ratePerMinute).toFixed(2)), [todayTotal, ratePerMinute])
-  const monthEarnings = useMemo(() => {
-    const now = new Date()
-    const dayOfMonth = now.getDate()
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-    const projectedTotal = dayOfMonth > 0 ? (monthTotal / dayOfMonth) * daysInMonth : monthTotal
-    return Number((projectedTotal * ratePerMinute).toFixed(2))
-  }, [monthTotal, ratePerMinute])
+  const earningsBreakdown = useMemo(
+    () => computeEarnings(logs, goal, ratePerMinute),
+    [logs, goal, ratePerMinute]
+  )
+  const todayEarnings = earningsBreakdown.todayEarnings
+  const monthEarnings = earningsBreakdown.monthEarnings
 
   const addMinutes = useCallback(async (value: number) => {
     const mins = Number(value.toFixed(2))

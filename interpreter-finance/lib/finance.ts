@@ -142,26 +142,22 @@ function parseLocalDate(dateStr: string) {
 }
 
 
-// BUILDS CHART DATA POINTS FROM RECENT LOGS, ZEROING OUT VALUES WHEN TODAY'S GOAL IS REACHED
+// BUILDS CHART DATA POINTS FROM RECENT LOGS — ALWAYS SHOWS REAL DATA
 export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
   const recentLogs = [...logs].slice(0, 14).reverse()
 
-  const today = localToday()
-  const todayLog = logs.find((l) => l.logged_on === today)
-  const goalReached = todayLog && todayLog.minutes >= goal && goal > 0
-
   const points = recentLogs.map((l) => ({
     day: parseLocalDate(l.logged_on).getDate(),
-    minutes: goalReached ? 0 : l.minutes,
-    goal: goalReached ? 0 : goal
+    minutes: l.minutes,
+    goal: goal
   }))
 
   if (points.length === 1) {
     const d = parseLocalDate(recentLogs[0].logged_on)
     d.setDate(d.getDate() - 1)
-    points.unshift({ day: d.getDate(), minutes: goalReached ? 0 : 0, goal: goalReached ? 0 : goal })
+    points.unshift({ day: d.getDate(), minutes: 0, goal: goal })
   } else if (points.length === 0) {
-    points.push({ day: new Date().getDate(), minutes: goalReached ? 0 : 0, goal: goalReached ? 0 : goal })
+    points.push({ day: new Date().getDate(), minutes: 0, goal: goal })
   }
 
   return points
@@ -265,9 +261,13 @@ export type EarningsBreakdown = {
 export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: number): EarningsBreakdown {
   const earn = (minutes: number) => Number((minutes * ratePerMinute).toFixed(2))
   const today = localToday()
+
+  // A day qualifies for earnings when:
+  // - goal > 0: minutes >= goal (today AND past days must meet the goal)
+  // - goal = 0: any minutes > 0 count
   const qualifies = (l: DailyLog) => {
     if (goal > 0) {
-      return l.minutes >= goal || l.logged_on < today
+      return l.minutes >= goal
     }
     return l.minutes > 0
   }
@@ -279,30 +279,47 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   weekAgo.setDate(weekAgo.getDate() - 6)
   const weekStart = dateKey(weekAgo)
 
-  const qualified = logs.filter(qualifies)
+  // Group logs by date first so qualification is checked on per-day totals
+  const byDate = new Map<string, { minutes: number; note: string | null; logsList: DailyLog[] }>()
+  for (const l of [...logs].sort((a, b) => b.logged_on.localeCompare(a.logged_on))) {
+    const existing = byDate.get(l.logged_on)
+    if (existing) {
+      existing.minutes += l.minutes
+      if (!existing.note && l.note) existing.note = l.note
+      existing.logsList.push(l)
+    } else {
+      byDate.set(l.logged_on, { minutes: l.minutes, note: l.note, logsList: [l] })
+    }
+  }
 
-  const todayLogs = logs.filter((l) => l.logged_on === today)
-  const todayEarnings = todayLogs.filter(qualifies).reduce((s, l) => s + earn(l.minutes), 0)
+  // Determine which dates qualify based on their TOTAL minutes for the day
+  const qualifiedDates = new Set<string>()
+  for (const [date, d] of byDate) {
+    if (goal > 0) {
+      if (d.minutes >= goal) qualifiedDates.add(date)
+    } else {
+      if (d.minutes > 0) qualifiedDates.add(date)
+    }
+  }
+
+  // Filter logs to only qualified dates
+  const qualified = logs.filter((l) => qualifiedDates.has(l.logged_on))
+
+  const todayEarnings = qualified.filter((l) => l.logged_on === today).reduce((s, l) => s + earn(l.minutes), 0)
   const weekEarnings = qualified.filter((l) => l.logged_on >= weekStart && l.logged_on <= today).reduce((s, l) => s + earn(l.minutes), 0)
   const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + earn(l.minutes), 0)
   const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
   const totalEarnings = qualified.reduce((s, l) => s + earn(l.minutes), 0)
 
-  const qualifiedDays = (() => {
-    const byDate = new Map<string, { minutes: number; note: string | null }>()
-    for (const l of [...logs].sort((a, b) => b.logged_on.localeCompare(a.logged_on))) {
-      const existing = byDate.get(l.logged_on)
-      if (existing) {
-        existing.minutes += l.minutes
-        if (!existing.note && l.note) existing.note = l.note
-      } else {
-        byDate.set(l.logged_on, { minutes: l.minutes, note: l.note })
-      }
-    }
-    return [...byDate.entries()]
-      .slice(0, 14)
-      .map(([date, d]) => ({ date, minutes: d.minutes, note: d.note, earnings: earn(d.minutes), qualified: d.minutes >= goal || date < today }))
-  })()
+  const qualifiedDays = [...byDate.entries()]
+    .slice(0, 14)
+    .map(([date, d]) => ({
+      date,
+      minutes: d.minutes,
+      note: d.note,
+      earnings: qualifiedDates.has(date) ? earn(d.minutes) : 0,
+      qualified: qualifiedDates.has(date)
+    }))
 
   return { todayEarnings, weekEarnings, monthEarnings, yearEarnings, totalEarnings, qualifiedDays }
 }
