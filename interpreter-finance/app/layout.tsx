@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/hooks/use-auth'
 import { ToastProvider } from '@/components/ui/app-toast'
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: 'Interpreter Finance',
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
           </ToastProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   )
