@@ -7,8 +7,6 @@ import { StatCard } from './stat-card'
 import { MonthlyChart } from './monthly-chart'
 import { ActivityList } from './activity-list'
 import { GoalCard } from './goal-card'
-import { GoalSettings } from './goal-settings'
-import { CalendarCard } from './calendar-card'
 
 export function Operations() {
   const { currentMinutes, todayTotal, goal, monthTotal, goalHitRate, completedDays, summary, weekDelta, todayEarnings, monthEarnings } = useFinance()
@@ -29,8 +27,6 @@ export function Operations() {
         </div>
         <div className="flex flex-col gap-4">
           <GoalCard />
-          <GoalSettings />
-          <CalendarCard />
         </div>
       </div>
     </>
