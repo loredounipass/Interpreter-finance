@@ -16,7 +16,6 @@ export function useFinance() {
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [currentMinutes, setCurrentMinutes] = useState(0)
-  const [activeLogId, setActiveLogId] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
@@ -33,14 +32,9 @@ export function useFinance() {
       setLogs(logsData ?? [])
 
       const today = localToday()
-      const activeLog = logsData?.find((l) => l.logged_on === today && l.is_active)
-      if (activeLog) {
-        setActiveLogId(activeLog.id)
-        setCurrentMinutes(activeLog.minutes)
-      } else {
-        setActiveLogId(null)
-        setCurrentMinutes(0)
-      }
+      const todaysLogs = logsData?.filter((l) => l.logged_on === today) || []
+      const calculatedTotal = todaysLogs.reduce((sum, l) => sum + l.minutes, 0)
+      setCurrentMinutes(calculatedTotal)
 
       const { data: goalData, error: goalError } = await supabase
         .from('goals')
@@ -88,6 +82,10 @@ export function useFinance() {
     () => logs.filter((l) => l.logged_on === today).reduce((sum, l) => sum + l.minutes, 0),
     [logs, today]
   )
+
+  useEffect(() => {
+    setCurrentMinutes(todayTotal)
+  }, [todayTotal])
   const monthLogs = useMemo(() => {
     const currentMonth = localMonth()
     return logs.filter((l) => l.logged_on.startsWith(currentMonth))
@@ -127,81 +125,33 @@ export function useFinance() {
     return Number((projectedTotal * ratePerMinute).toFixed(2))
   }, [monthTotal, ratePerMinute])
 
-  const persistMinutes = useCallback(async (newTotal: number) => {
-    const minutesToSave = Number(newTotal.toFixed(2))
-    setCurrentMinutes(minutesToSave)
+  const addMinutes = useCallback(async (value: number) => {
+    const mins = Number(value.toFixed(2))
+    if (mins <= 0) return
+    setCurrentMinutes((prev) => prev + mins)
     setIsSaving(true)
     try {
-      if (minutesToSave < 0) return
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
 
-      const upsert = async () => {
-        if (activeLogId) {
-          const { data, error } = await supabase
-            .from('daily_logs')
-            .update({ minutes: minutesToSave, updated_at: new Date().toISOString() })
-            .eq('id', activeLogId)
-            .select()
-            .single()
-          if (error) throw error
-          setLogs((prev) => prev.map((l) => (l.id === activeLogId ? data : l)))
-        } else {
-          if (minutesToSave === 0) return
-          const { data, error } = await supabase
-            .from('daily_logs')
-            .insert([{ user_id: session.user.id, logged_on: today, minutes: minutesToSave, note: null, is_active: true }])
-            .select()
-            .single()
-          if (error) throw error
-          setActiveLogId(data.id)
-          setLogs((prev) => [data, ...prev])
-        }
-      }
-
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          await upsert()
-          return
-        } catch {
-          if (attempt === 2) throw new Error('Failed to persist minutes after 3 attempts')
-          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
-        }
-      }
+      const { data, error } = await supabase
+        .from('daily_logs')
+        .insert([{ user_id: session.user.id, logged_on: today, minutes: mins, note: null, is_active: false }])
+        .select()
+        .single()
+      
+      if (error) throw error
+      setLogs((prev) => [data, ...prev])
     } catch (e: any) {
       console.error('Save minutes error:', e?.message || String(e))
+      setCurrentMinutes((prev) => prev - mins)
     } finally {
       setIsSaving(false)
     }
-  }, [activeLogId, today])
+  }, [today])
 
-  const addMinutes = useCallback((value: number) => {
-    persistMinutes(currentMinutes + value)
-  }, [currentMinutes, persistMinutes])
-
-  const setMinutes = useCallback((value: number) => {
-    if (value === 0) {
-      const archivedId = activeLogId
-      if (archivedId) {
-        setActiveLogId(null)
-        setCurrentMinutes(0)
-        setLogs((prev) => prev.map((l) => (l.id === archivedId ? { ...l, is_active: false } : l)))
-        supabase
-          .from('daily_logs')
-          .update({ is_active: false, updated_at: new Date().toISOString() })
-          .eq('id', archivedId)
-          .then(({ error }) => { if (error) console.error('Archive log error:', error.message) })
-      } else {
-        setCurrentMinutes(0)
-      }
-    } else {
-      setCurrentMinutes(value)
-    }
-  }, [activeLogId])
-
-  const saveMinutes = useCallback(async () => {
-    await persistMinutes(currentMinutes)
-  }, [currentMinutes, persistMinutes])
+  const setMinutes = useCallback((value: number) => {}, []) // Deprecated
+  const saveMinutes = useCallback(async () => {}, []) // Deprecated
 
   const saveGoal = useCallback(async (value: number, hours?: number, rate?: number) => {
     try {

@@ -6,13 +6,12 @@ import { useToast } from '@/components/ui/app-toast'
 import { Glass, Eyebrow } from './shared'
 
 export function GoalCard() {
-  const { currentMinutes, goal, progress, addMinutes, setMinutes, saveMinutes, isSaving } = useFinance()
+  const { currentMinutes, goal, progress, addMinutes, isSaving } = useFinance()
   const toast = useToast()
   const [draftMins, setDraftMins] = useState('')
 
   const handleSave = async () => {
     const saved = Number(currentMinutes.toFixed(2))
-    await saveMinutes()
     if (goal > 0 && saved >= goal) {
       toast({
         title: 'Goal reached!',
@@ -21,8 +20,8 @@ export function GoalCard() {
       })
     } else {
       toast({
-        title: 'Log saved',
-        description: saved > 0 ? `${saved} minutes logged for today.` : undefined,
+        title: 'Looking good',
+        description: saved > 0 ? `${saved} minutes logged for today.` : 'Keep up the good work.',
         variant: 'info',
       })
     }
@@ -81,7 +80,6 @@ export function GoalCard() {
         <button onClick={handleSave} disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
           {isSaving ? 'Saving...' : 'Save log'}
         </button>
-        <button onClick={() => setMinutes(0)} className="ml-auto rounded-lg px-3 py-2 text-xs text-muted-foreground hover:text-foreground">Reset</button>
       </div>
     </Glass>
   )

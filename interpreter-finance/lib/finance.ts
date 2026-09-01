@@ -38,7 +38,7 @@ export type Profile = {
 export type WeekData = { week: string; actual: number; goal: number }
 export type ChartPoint = { day: number; minutes: number; goal: number }
 export type CalendarDay = { day: number; minutes: number }
-export type RecentEntry = { date: string; minutes: number; note: string }
+export type RecentEntry = { dateKey: string; date: string; minutes: number; note: string }
 
 
 // HOISTED INTL FORMATTERS TO AVOID REBUILDING ON EACH CALL
@@ -206,14 +206,30 @@ export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
   yd.setDate(yd.getDate() - 1)
   const yesterday = `${yd.getFullYear()}-${String(yd.getMonth() + 1).padStart(2, '0')}-${String(yd.getDate()).padStart(2, '0')}`
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  return logs
-    .sort((a, b) => b.logged_on.localeCompare(a.logged_on))
-    .map((l) => {
-      const note = l.note || 'Daily practice'
-      if (l.logged_on === today) return { date: 'Today, ' + monthName(), minutes: l.minutes, note }
-      if (l.logged_on === yesterday) return { date: 'Yesterday, ' + monthName(), minutes: l.minutes, note }
-      const d = parseLocalDate(l.logged_on)
-      return { date: `${dayNames[d.getDay()]}, ${monthName(d.getMonth())} ${d.getDate()}`, minutes: l.minutes, note }
+
+  const grouped = new Map<string, { minutes: number; note: string }>()
+  
+  for (const l of [...logs].sort((a, b) => a.logged_on.localeCompare(b.logged_on))) {
+    const existing = grouped.get(l.logged_on)
+    if (existing) {
+       existing.minutes += l.minutes
+       if (!existing.note && l.note) existing.note = l.note
+    } else {
+       grouped.set(l.logged_on, { minutes: l.minutes, note: l.note || 'Daily practice' })
+    }
+  }
+
+  return Array.from(grouped.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([dateKey, data]) => {
+      let dateLabel = ''
+      if (dateKey === today) dateLabel = 'Today, ' + monthName()
+      else if (dateKey === yesterday) dateLabel = 'Yesterday, ' + monthName()
+      else {
+        const d = parseLocalDate(dateKey)
+        dateLabel = `${dayNames[d.getDay()]}, ${monthName(d.getMonth())} ${d.getDate()}`
+      }
+      return { dateKey, date: dateLabel, minutes: data.minutes, note: data.note }
     })
 }
 
