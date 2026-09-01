@@ -1,11 +1,15 @@
 'use client'
 
-import { ArrowUpRight, Clock3 } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowUpRight, Clock3, ChevronRight } from 'lucide-react'
 import { useFinance } from '@/hooks/use-finance'
 import { Glass, Eyebrow } from './shared'
+import { DailyLogsDialog } from './daily-logs-dialog'
 
 export function ActivityList() {
   const { recentEntries } = useFinance()
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
+
   return (
     <Glass className="p-5">
       <div className="flex items-center justify-between">
@@ -17,17 +21,29 @@ export function ActivityList() {
           <p className="py-8 text-center text-sm text-muted-foreground">No practice logged yet.</p>
         ) : (
           recentEntries.map((entry, i) => (
-            <div key={entry.date + i} className="flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-white/[0.04]">
-              <div className="grid size-9 place-items-center rounded-lg bg-primary/15 text-primary"><Clock3 className="size-4" /></div>
+            <button 
+              key={entry.dateKey + i} 
+              onClick={() => setSelectedDateKey(entry.dateKey)}
+              className="flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left hover:bg-white/[0.04] transition-colors"
+            >
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><Clock3 className="size-4" /></div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{entry.note}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{entry.date}</p>
+                <p className="truncate text-sm font-medium">{entry.date}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground truncate">{entry.note}</p>
               </div>
-              <span className="font-mono text-sm">{entry.minutes}m</span>
-            </div>
+              <span className="shrink-0 font-mono text-sm">{Number(entry.minutes.toFixed(2))}m</span>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </button>
           ))
         )}
       </div>
+
+      {selectedDateKey && (
+        <DailyLogsDialog 
+          dateKey={selectedDateKey} 
+          onClose={() => setSelectedDateKey(null)} 
+        />
+      )}
     </Glass>
   )
 }
