@@ -11,13 +11,13 @@ let _authClient: SupabaseClient | null = null
 export function createSupabaseClient(token?: string | null): SupabaseClient | null {
   if (!supabaseUrl || !supabaseAnonKey) return null
   if (token) {
-    if (!_authClient) {
-      _authClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: `Bearer ${token}` } } })
-    }
-    return _authClient
+    return createClient(supabaseUrl, supabaseAnonKey, { 
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false }
+    })
   }
   if (!_client) {
-    _client = createClient(supabaseUrl, supabaseAnonKey)
+    _client = createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false } })
   }
   return _client
 }
