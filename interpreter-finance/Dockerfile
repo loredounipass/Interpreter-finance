@@ -1,5 +1,5 @@
 # Install dependencies only when needed
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN npm install -g pnpm@9
 RUN pnpm install
 
 # Rebuild the source code only when needed
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -25,7 +25,7 @@ ENV NVIDIA_API_KEY=$NVIDIA_API_KEY
 RUN npm install -g pnpm@9 && pnpm build
 
 # Production image, copy all the files and run next
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
