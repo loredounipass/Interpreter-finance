@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useTTS, DEFAULT_TTS_SETTINGS, type TTSSettings } from '@/hooks/use-tts'
+import { useState } from 'react'
+import { DEFAULT_TTS_SETTINGS, type TTSSettings } from '@/hooks/use-tts'
 
 const LANGUAGES = [
   { value: 'es-US', label: 'Espanol (US)' },
@@ -25,20 +25,22 @@ const EMOTIONS = [
 const selectClass =
   'mt-1 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-foreground outline-none focus:border-primary/50'
 
-export function TTSSettingsDialog() {
-  const tts = useTTS()
-  const [draft, setDraft] = useState<TTSSettings>(tts.settings ?? DEFAULT_TTS_SETTINGS)
+interface TTSSettingsDialogProps {
+  open: boolean
+  onClose: () => void
+  onSave: (settings: TTSSettings) => void
+  currentSettings: TTSSettings | null
+}
 
-  useEffect(() => {
-    if (tts.dialogOpen) setDraft(tts.settings ?? DEFAULT_TTS_SETTINGS)
-  }, [tts.dialogOpen, tts.settings])
+export function TTSSettingsDialog({ open, onClose, onSave, currentSettings }: TTSSettingsDialogProps) {
+  const [draft, setDraft] = useState<TTSSettings>(currentSettings ?? DEFAULT_TTS_SETTINGS)
 
-  if (!tts.dialogOpen) return null
+  if (!open) return null
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-      onClick={() => tts.setDialogOpen(false)}
+      onClick={onClose}
     >
       <div
         className="w-full max-w-sm rounded-2xl border border-white/10 bg-card p-5 shadow-2xl"
@@ -88,13 +90,13 @@ export function TTSSettingsDialog() {
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button
-            onClick={() => tts.setDialogOpen(false)}
+            onClick={onClose}
             className="rounded-lg border border-white/10 px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Cancelar
           </button>
           <button
-            onClick={() => tts.saveSettings(draft)}
+            onClick={() => onSave(draft)}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
           >
             Guardar

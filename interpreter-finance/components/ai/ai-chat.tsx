@@ -211,7 +211,13 @@ export function AIChat() {
         />
       </div>
 
-      <TTSSettingsDialog />
+      <TTSSettingsDialog
+        key={tts.dialogOpen ? 'open' : 'closed'}
+        open={tts.dialogOpen}
+        onClose={() => tts.setDialogOpen(false)}
+        onSave={tts.saveSettings}
+        currentSettings={tts.settings}
+      />
     </section>
   )
 }

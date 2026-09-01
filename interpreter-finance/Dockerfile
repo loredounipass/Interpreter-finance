@@ -5,6 +5,7 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm@11
+ENV CI=true
 RUN pnpm install
 
 # Rebuild the source code only when needed
