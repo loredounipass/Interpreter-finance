@@ -93,7 +93,7 @@ export function useFinance() {
   const { monthTotal, monthAverage, goalHitRate, goalProgress, completedDays } = useMemo(() => computeMonthStats(monthLogs, goal), [monthLogs, goal])
 
   const chartData = useMemo(() => buildChartData(logs, goal), [logs, goal])
-  const calendarDays = useMemo(() => buildCalendarData(logs), [logs])
+  const calendarDays = useMemo(() => buildCalendarData(logs, goal), [logs, goal])
   const recentEntries = useMemo(() => buildRecentEntries(logs), [logs])
   const weeklyData = useMemo(() => buildWeeklyData(logs, goal), [logs, goal])
 

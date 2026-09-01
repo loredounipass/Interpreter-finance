@@ -37,7 +37,7 @@ export type Profile = {
 
 export type WeekData = { week: string; actual: number; goal: number }
 export type ChartPoint = { day: number; minutes: number; goal: number }
-export type CalendarDay = { day: number; minutes: number }
+export type CalendarDay = { day: number; minutes: number; goalMet: boolean; hasEarnings: boolean }
 export type RecentEntry = { dateKey: string; date: string; minutes: number; note: string }
 
 
@@ -168,13 +168,15 @@ export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
 }
 
 
-// BUILDS CALENDAR DATA AGGREGATING MINUTES PER DAY FOR THE CURRENT MONTH
-export function buildCalendarData(logs: DailyLog[]): CalendarDay[] {
+// BUILDS CALENDAR DATA AGGREGATING MINUTES PER DAY FOR ANY GIVEN MONTH
+// Includes goal status: goalMet (minutes >= goal) and hasEarnings (past day with logged minutes)
+export function buildCalendarData(logs: DailyLog[], goal: number = 0, year?: number, month?: number): CalendarDay[] {
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`
+  const targetYear = year ?? now.getFullYear()
+  const targetMonth = month ?? now.getMonth()
+  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate()
+  const monthKey = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`
+  const todayStr = localToday()
   const logMap = new Map<number, number>()
   logs.forEach((l) => {
     if (l.logged_on.startsWith(monthKey)) {
@@ -182,7 +184,16 @@ export function buildCalendarData(logs: DailyLog[]): CalendarDay[] {
       logMap.set(d.getDate(), (logMap.get(d.getDate()) ?? 0) + l.minutes)
     }
   })
-  return Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, minutes: logMap.get(i + 1) ?? 0 }))
+  return Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1
+    const minutes = logMap.get(day) ?? 0
+    const dayStr = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const isPastDay = dayStr < todayStr
+    const goalMet = goal > 0 && minutes >= goal
+    // hasEarnings: the day is in the past AND has logged minutes (earnings were counted)
+    const hasEarnings = isPastDay && minutes > 0
+    return { day, minutes, goalMet, hasEarnings }
+  })
 }
 
 
