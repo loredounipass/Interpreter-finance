@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { generateProfessionalPDF, DownloadData } from '@/utils/pdf-generator'
+import { authHeaders } from '@/lib/api-auth'
 
 // MANAGES DOWNLOAD STATE AND INTERACTS WITH THE DOWNLOAD API TO GENERATE PDF REPORTS
 export function useDownloads() {
@@ -12,7 +13,12 @@ export function useDownloads() {
     setError(null)
     
     try {
-      const response = await fetch(`/api/downloads?period=${period}`)
+      const headers = await authHeaders()
+      if (!headers.Authorization) {
+        throw new Error('You must be logged in to download reports.')
+      }
+
+      const response = await fetch(`/api/downloads?period=${period}`, { headers })
       
       if (!response.ok) {
         throw new Error('Failed to fetch data for the report.')
