@@ -13,7 +13,7 @@ function MiniProgressChart({ chartData, ratePerMinute }: { chartData: { day: num
   const earningsData = useMemo(() =>
     chartData.map((p) => ({
       day: p.day,
-      earnings: p.goal > 0 && p.minutes < p.goal ? 0 : Number((p.minutes * ratePerMinute).toFixed(2)),
+      earnings: Number((p.minutes * ratePerMinute).toFixed(2)),
     })),
     [chartData, ratePerMinute]
   )
@@ -58,10 +58,12 @@ function MiniProgressChart({ chartData, ratePerMinute }: { chartData: { day: num
 }
 
 export function DailyLog({ onNavigate }: { onNavigate?: (view: any) => void }) {
-  const { todayEarnings, chartData, ratePerMinute } = useFinance()
+  const { currentMinutes, chartData, ratePerMinute } = useFinance()
+  const displayEarnings = Number((currentMinutes * ratePerMinute).toFixed(2))
+  
   return (
     <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-      <StatCard label="Today's Earnings" value={`$${todayEarnings.toFixed(2)}`} note="" icon={BadgeDollarSign} size="lg">
+      <StatCard label="Today's Earnings" value={`$${displayEarnings.toFixed(2)}`} note="" icon={BadgeDollarSign} size="lg">
         <MiniProgressChart chartData={chartData} ratePerMinute={ratePerMinute} />
       </StatCard>
       <GoalCard /><ActivityList onNavigate={onNavigate} /><CalendarCard />
