@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Check, Clock3, CalendarDays, BarChart3, CalendarRange, Trophy, BadgeDollarSign, Wallet } from 'lucide-react'
+import { Check, Clock3, CalendarDays, BarChart3, CalendarRange, Trophy, BadgeDollarSign, Wallet, X } from 'lucide-react'
 import { useFinance } from '@/hooks/use-finance'
 import { formatMinutes, formatLongDate, computeEarnings } from '@/lib/finance'
 import { StatCard } from './stat-card'
@@ -34,21 +34,33 @@ export function Earnings() {
             {qualifiedDays.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Log some minutes to see your earnings.</p>
             ) : (
-              qualifiedDays.map((d) => (
-                <div key={d.date} className={`flex items-center gap-3 rounded-xl px-2 py-3 ${d.qualified ? '' : 'opacity-50'}`}>
-                  <div className={`grid size-9 place-items-center rounded-lg ${d.qualified ? 'bg-primary/15 text-primary' : 'bg-white/[0.06] text-muted-foreground'}`}>
-                    {d.qualified ? <Check className="size-4" /> : <Clock3 className="size-4" />}
+              qualifiedDays.map((d) => {
+                const isToday = d.date === new Date().toISOString().slice(0, 10)
+                const goalMet = goal > 0 ? d.minutes >= goal : d.minutes > 0
+                const isExpired = !isToday && !goalMet
+                
+                return (
+                <div key={d.date} className={`flex items-center gap-3 rounded-xl px-2 py-3 ${isToday ? 'opacity-80' : ''}`}>
+                  <div className={`grid size-9 place-items-center rounded-lg ${
+                    goalMet 
+                      ? 'bg-primary/15 text-primary' 
+                      : isExpired 
+                        ? 'bg-red-500/10 text-red-400' 
+                        : 'bg-white/[0.06] text-muted-foreground'
+                  }`}>
+                    {goalMet ? <Check className="size-4" /> : isExpired ? <X className="size-4" /> : <Clock3 className="size-4" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{d.note || 'Daily practice'}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{formatLongDate(d.date)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-mono text-sm">{d.qualified ? `$${d.earnings.toFixed(2)}` : '$0.00'}</p>
+                    <p className="font-mono text-sm">{isToday && !goalMet ? '$0.00' : `$${d.earnings.toFixed(2)}`}</p>
                     <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">{d.minutes}m {goal > 0 ? `/ ${goal}m` : ''}</p>
                   </div>
                 </div>
-              ))
+                )
+              })
             )}
           </div>
         </Glass>
