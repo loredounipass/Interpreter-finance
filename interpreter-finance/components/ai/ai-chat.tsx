@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAIChat } from '@/hooks/use-ai-chat'
 import { useChatSessions } from '@/hooks/use-chat-sessions'
+import { useAuth } from '@/hooks/use-auth'
 import { useFinance } from '@/hooks/use-finance'
 import { useTTS } from '@/hooks/use-tts'
 import { useSpeechToText } from '@/hooks/use-speech-to-text'
@@ -14,6 +15,7 @@ import { ChatInput } from './chat-input'
 import { TTSSettingsDialog } from './tts-settings-dialog'
 
 export function AIChat() {
+  const { user } = useAuth()
   const { goal, ratePerMinute, todayTotal, todayEarnings, monthEarnings, monthTotal, completedDays, goalHitRate, logs } = useFinance()
   const tts = useTTS()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -31,7 +33,7 @@ export function AIChat() {
     loadHistory,
     deleteSession,
     updateSession,
-  } = useChatSessions()
+  } = useChatSessions(!!user)
 
   const { messages, setMessages, model, setModel, input, setInput, isLoading, error, setError, send, clear } = useAIChat({
     sessionId: currentSessionId,

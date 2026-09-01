@@ -8,7 +8,7 @@ const CURRENT_KEY = 'ai_current_session'
 
 
 // MANAGES PERSISTENT CHAT SESSION LIFECYCLE INCLUDING CREATION, SELECTION, HISTORY LOADING, AND DELETION VIA THE API
-export function useChatSessions() {
+export function useChatSessions(isAuthenticated = false) {
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [currentSessionId, setCurrentSessionIdState] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -23,6 +23,11 @@ export function useChatSessions() {
     setIsLoading(true)
     try {
       const headers = await authHeaders()
+      if (!headers.Authorization) {
+        setSessions([])
+        setCurrentSessionId(null)
+        return
+      }
       const res = await fetch('/api/chat/sessions', { headers })
       if (!res.ok) {
         setSessions([])
@@ -119,9 +124,12 @@ export function useChatSessions() {
     setSessions((prev) => prev.map((s) => (s.id === id ? session : s)))
   }, [])
 
+  // Only load sessions once the user is authenticated, preventing 401 race conditions
   useEffect(() => {
-    loadSessions()
-  }, [])
+    if (isAuthenticated) {
+      loadSessions()
+    }
+  }, [isAuthenticated, loadSessions])
 
   return {
     sessions,
