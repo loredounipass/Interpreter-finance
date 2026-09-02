@@ -43,7 +43,7 @@ export function DailyLogsDialog({ dateKey, onClose }: { dateKey: string; onClose
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/95 p-6 shadow-2xl backdrop-blur-md relative max-h-[90vh] flex flex-col">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/95 p-6 shadow-2xl backdrop-blur-md relative max-h-[500px] sm:max-h-[600px] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Entries for {entryData?.date || dateKey}</h3>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-white/10 transition-colors">
@@ -51,7 +51,7 @@ export function DailyLogsDialog({ dateKey, onClose }: { dateKey: string; onClose
           </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2">
+        <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
           {selectedLogs.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">No individual entries found.</p>
           ) : (
