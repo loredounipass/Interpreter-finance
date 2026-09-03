@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Clock3, ListChecks, ChevronRight } from 'lucide-react'
+import { Clock3, ListChecks, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { useFinance } from '@/hooks/use-finance'
 import { formatMinutes } from '@/lib/finance'
 import { StatCard } from './stat-card'
@@ -44,7 +44,9 @@ export function ActivityView() {
                 onClick={() => setSelectedDateKey(entry.dateKey)}
                 className="flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left hover:bg-white/[0.04] transition-colors"
               >
-                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary"><Clock3 className="size-4" /></div>
+                <div className={`grid size-9 shrink-0 place-items-center rounded-lg ${entry.qualified ? 'bg-green-500/10 text-green-500' : 'bg-primary/15 text-primary'}`}>
+                  {entry.qualified ? <CheckCircle2 className="size-4" /> : <Clock3 className="size-4" />}
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{entry.date}</p>
                   <p className="mt-0.5 font-mono text-xs text-muted-foreground truncate">{entry.note}</p>

@@ -40,7 +40,7 @@ export type Profile = {
 export type WeekData = { week: string; actual: number; goal: number }
 export type ChartPoint = { day: number; minutes: number; goal: number; label?: string }
 export type CalendarDay = { day: number; minutes: number; goalMet: boolean; hasEarnings: boolean }
-export type RecentEntry = { dateKey: string; date: string; minutes: number; note: string }
+export type RecentEntry = { dateKey: string; date: string; minutes: number; note: string; qualified: boolean }
 export type ChartPage = { points: ChartPoint[]; page: number; totalPages: number; dateRange: string }
 
 
@@ -315,7 +315,7 @@ export function buildWeeklyData(logs: DailyLog[], goal: number, allGoals?: Goal[
 
 
 // BUILD A LIST OF RECENT ENTRIES WITH HUMAN-READABLE DATE LABELS AND NOTES
-export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
+export function buildRecentEntries(logs: DailyLog[], goal: number, allGoals?: Goal[]): RecentEntry[] {
   const today = localToday()
   const yd = new Date()
   yd.setDate(yd.getDate() - 1)
@@ -345,7 +345,9 @@ export function buildRecentEntries(logs: DailyLog[]): RecentEntry[] {
         const d = parseLocalDate(dateKey)
         dateLabel = `${dayNames[d.getDay()]}, ${monthName(d.getMonth())} ${d.getDate()}`
       }
-      return { dateKey, date: dateLabel, minutes: data.minutes, note: data.note }
+      const dayGoal = (allGoals && allGoals.length > 0) ? getGoalForDate(dateKey, allGoals) : goal
+      const qualified = dateKey < today || (dayGoal > 0 ? data.minutes >= dayGoal : data.minutes > 0)
+      return { dateKey, date: dateLabel, minutes: data.minutes, note: data.note, qualified }
     })
 }
 

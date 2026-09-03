@@ -100,7 +100,7 @@ export function useFinance() {
 
   const chartData = useMemo(() => buildChartData(logs, goal, allGoals), [logs, goal, allGoals])
   const calendarDays = useMemo(() => buildCalendarData(logs, goal, undefined, undefined, allGoals), [logs, goal, allGoals])
-  const recentEntries = useMemo(() => buildRecentEntries(logs), [logs])
+  const recentEntries = useMemo(() => buildRecentEntries(logs, goal, allGoals), [logs, goal, allGoals])
   const weeklyData = useMemo(() => buildWeeklyData(logs, goal, allGoals), [logs, goal, allGoals])
 
   const prevMonthTotal = useMemo(() => {
