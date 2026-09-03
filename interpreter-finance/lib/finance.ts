@@ -383,7 +383,7 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   const byDate = new Map<string, { minutes: number; note: string | null; logsList: DailyLog[]; earnings: number }>()
   for (const l of [...logs].sort((a, b) => b.logged_on.localeCompare(a.logged_on))) {
     const dKey = l.logged_on.slice(0, 10)
-    const logEarnings = l.earnings != null ? l.earnings : earn(l.minutes)
+    const logEarnings = l.earnings || earn(l.minutes)
     const existing = byDate.get(dKey)
     if (existing) {
       existing.minutes += l.minutes
@@ -416,11 +416,11 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   // FILTER LOGS TO ONLY QUALIFIED DATES
   const qualified = logs.filter((l) => qualifiedDates.has(l.logged_on.slice(0, 10)))
 
-  const todayEarnings = qualified.filter((l) => l.logged_on.startsWith(today)).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
-  const weekEarnings = qualified.filter((l) => l.logged_on.slice(0, 10) >= weekStart && l.logged_on.slice(0, 10) <= today).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
-  const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
-  const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
-  const totalEarnings = qualified.reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
+  const todayEarnings = qualified.filter((l) => l.logged_on.startsWith(today)).reduce((s, l) => s + (l.earnings || earn(l.minutes)), 0)
+  const weekEarnings = qualified.filter((l) => l.logged_on.slice(0, 10) >= weekStart && l.logged_on.slice(0, 10) <= today).reduce((s, l) => s + (l.earnings || earn(l.minutes)), 0)
+  const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + (l.earnings || earn(l.minutes)), 0)
+  const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + (l.earnings || earn(l.minutes)), 0)
+  const totalEarnings = qualified.reduce((s, l) => s + (l.earnings || earn(l.minutes)), 0)
 
   // QUALIFIED FLAG SHOWS WHETHER THE DAY MET THE GOAL (CHECK ICON) OR JUST EXPIRED (CLOCK ICON)
   // goalForDate is included so the UI can display the correct goal per day
