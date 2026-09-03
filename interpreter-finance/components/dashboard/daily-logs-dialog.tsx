@@ -78,7 +78,7 @@ export function DailyLogsDialog({ dateKey, onClose }: { dateKey: string; onClose
                             className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 text-sm outline-none focus:border-primary/50"
                           />
                         </div>
-                        <span className="text-xs text-muted-foreground">{fmtDate(e.updated_at)}</span>
+                        <span className="text-xs text-muted-foreground">{fmtDate(e.created_at)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <button onClick={saveEdit} disabled={savingId === e.id} aria-label="Save" className="grid size-8 place-items-center rounded-lg bg-primary/15 text-primary hover:bg-primary/25 disabled:opacity-50 transition-colors">
@@ -93,7 +93,7 @@ export function DailyLogsDialog({ dateKey, onClose }: { dateKey: string; onClose
                     <>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{e.note || 'Individual log'}</p>
-                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{fmtDate(e.updated_at)}</p>
+                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">{fmtDate(e.created_at)}</p>
                       </div>
                       <span className="shrink-0 font-mono text-sm">{Number(e.minutes.toFixed(2))}m</span>
                       <div className="flex items-center gap-1 ml-2">
