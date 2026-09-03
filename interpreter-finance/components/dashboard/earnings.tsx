@@ -36,7 +36,7 @@ export function Earnings() {
             ) : (
               qualifiedDays.map((d) => {
                 const isToday = d.date === new Date().toISOString().slice(0, 10)
-                const goalMet = goal > 0 ? d.minutes >= goal : d.minutes > 0
+                const goalMet = d.goalForDate > 0 ? d.minutes >= d.goalForDate : d.minutes > 0
                 const isExpired = !isToday && !goalMet
                 
                 return (
@@ -56,7 +56,7 @@ export function Earnings() {
                   </div>
                   <div className="text-right">
                     <p className="font-mono text-sm">{isToday && !goalMet ? '$0.00' : `$${d.earnings.toFixed(2)}`}</p>
-                    <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">{d.minutes}m {goal > 0 ? `/ ${goal}m` : ''}</p>
+                    <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">{d.minutes}m {d.goalForDate > 0 ? `/ ${d.goalForDate}m` : ''}</p>
                   </div>
                 </div>
                 )

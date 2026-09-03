@@ -41,6 +41,21 @@ export type CalendarDay = { day: number; minutes: number; goalMet: boolean; hasE
 export type RecentEntry = { dateKey: string; date: string; minutes: number; note: string }
 
 
+// RESOLVES THE GOAL THAT WAS ACTIVE ON A GIVEN DATE BY WALKING THE GOAL TIMELINE
+// Goals must be sorted by starts_on ascending. Returns the daily_minutes of the last goal whose starts_on <= date.
+export function getGoalForDate(date: string, goals: Goal[]): number {
+  let result = 0
+  for (const g of goals) {
+    if (g.starts_on <= date) {
+      result = g.daily_minutes
+    } else {
+      break
+    }
+  }
+  return result
+}
+
+
 // HOISTED INTL FORMATTERS TO AVOID REBUILDING ON EACH CALL
 const monthYearFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 const longDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
@@ -126,13 +141,34 @@ export function getWeekDelta(monthTotal: number, prevMonthTotal: number) {
 
 
 // COMPUTES AGGREGATE MONTHLY STATISTICS INCLUDING TOTALS, AVERAGES, AND GOAL HIT RATES
-export function computeMonthStats(logs: DailyLog[], goal: number) {
+// Now uses goal history to compare each day against the goal that was active on that date
+export function computeMonthStats(logs: DailyLog[], goal: number, allGoals?: Goal[]) {
   const monthTotal = logs.reduce((sum, l) => sum + l.minutes, 0)
   const days = logs.length || 1
   const monthAverage = Math.round(monthTotal / days)
-  const completedDays = logs.filter((l) => goal > 0 ? l.minutes >= goal : l.minutes > 0).length
-  const goalHitRate = logs.length > 0 ? Math.round((completedDays / logs.length) * 100) : 0
-  const goalProgress = (logs.length > 0 && goal > 0) ? Math.round((monthTotal / (goal * logs.length)) * 100) : (monthTotal > 0 ? 100 : 0)
+
+  // Group logs by date to get daily totals
+  const byDate = new Map<string, number>()
+  for (const l of logs) {
+    const dKey = l.logged_on.slice(0, 10)
+    byDate.set(dKey, (byDate.get(dKey) || 0) + l.minutes)
+  }
+
+  let completedDays = 0
+  let goalDaySum = 0
+  if (allGoals && allGoals.length > 0) {
+    for (const [date, mins] of byDate) {
+      const dayGoal = getGoalForDate(date, allGoals)
+      if (dayGoal > 0 ? mins >= dayGoal : mins > 0) completedDays++
+      goalDaySum += dayGoal
+    }
+  } else {
+    completedDays = logs.filter((l) => goal > 0 ? l.minutes >= goal : l.minutes > 0).length
+    goalDaySum = goal * byDate.size
+  }
+
+  const goalHitRate = byDate.size > 0 ? Math.round((completedDays / byDate.size) * 100) : 0
+  const goalProgress = (byDate.size > 0 && goalDaySum > 0) ? Math.round((monthTotal / goalDaySum) * 100) : (monthTotal > 0 ? 100 : 0)
   return { monthTotal, monthAverage, goalHitRate, goalProgress, completedDays }
 }
 
@@ -143,7 +179,8 @@ function parseLocalDate(dateStr: string) {
 
 
 // BUILDS CHART DATA POINTS FROM RECENT LOGS — ALWAYS SHOWS REAL DATA
-export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
+// Now uses goal history to assign the correct goal per day
+export function buildChartData(logs: DailyLog[], goal: number, allGoals?: Goal[]): ChartPoint[] {
   const byDate = new Map<string, number>()
   for (const l of [...logs].sort((a, b) => a.logged_on.localeCompare(b.logged_on))) {
     const dKey = l.logged_on.slice(0, 10)
@@ -155,13 +192,15 @@ export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
   const points = recentLogs.map(([dKey, minutes]) => ({
     day: parseLocalDate(dKey).getDate(),
     minutes: minutes,
-    goal: goal
+    goal: (allGoals && allGoals.length > 0) ? getGoalForDate(dKey, allGoals) : goal
   }))
 
   if (points.length === 1) {
     const d = parseLocalDate(recentLogs[0][0])
     d.setDate(d.getDate() - 1)
-    points.unshift({ day: d.getDate(), minutes: 0, goal: goal })
+    const prevDateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const prevGoal = (allGoals && allGoals.length > 0) ? getGoalForDate(prevDateKey, allGoals) : goal
+    points.unshift({ day: d.getDate(), minutes: 0, goal: prevGoal })
   } else if (points.length === 0) {
     points.push({ day: new Date().getDate(), minutes: 0, goal: goal })
   }
@@ -172,7 +211,8 @@ export function buildChartData(logs: DailyLog[], goal: number): ChartPoint[] {
 
 // BUILDS CALENDAR DATA AGGREGATING MINUTES PER DAY FOR ANY GIVEN MONTH
 // Includes goal status: goalMet (minutes >= goal) and hasEarnings (past day with logged minutes)
-export function buildCalendarData(logs: DailyLog[], goal: number = 0, year?: number, month?: number): CalendarDay[] {
+// Now uses goal history to check goalMet against the goal active on each specific day
+export function buildCalendarData(logs: DailyLog[], goal: number = 0, year?: number, month?: number, allGoals?: Goal[]): CalendarDay[] {
   const now = new Date()
   const targetYear = year ?? now.getFullYear()
   const targetMonth = month ?? now.getMonth()
@@ -191,7 +231,8 @@ export function buildCalendarData(logs: DailyLog[], goal: number = 0, year?: num
     const minutes = logMap.get(day) ?? 0
     const dayStr = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const isPastDay = dayStr < todayStr
-    const goalMet = goal > 0 && minutes >= goal
+    const dayGoal = (allGoals && allGoals.length > 0) ? getGoalForDate(dayStr, allGoals) : goal
+    const goalMet = dayGoal > 0 && minutes >= dayGoal
     // hasEarnings: the day is in the past AND has logged minutes (earnings were counted)
     const hasEarnings = isPastDay && minutes > 0
     return { day, minutes, goalMet, hasEarnings }
@@ -200,15 +241,19 @@ export function buildCalendarData(logs: DailyLog[], goal: number = 0, year?: num
 
 
 // GROUPS DAILY LOGS INTO WEEKLY BUCKETS WITH ACTUAL AND GOAL MINUTES
-export function buildWeeklyData(logs: DailyLog[], goal: number): WeekData[] {
-  const weeks: Record<string, { actual: number; goal: number }> = {}
+// Now uses goal history — weekly goal is the average of daily goals in that week
+export function buildWeeklyData(logs: DailyLog[], goal: number, allGoals?: Goal[]): WeekData[] {
+  const weeks: Record<string, { actual: number; goalSum: number; dayCount: number }> = {}
   logs.forEach((l) => {
     const d = parseLocalDate(l.logged_on)
     const key = `W${Math.ceil(d.getDate() / 7)}`
-    if (!weeks[key]) weeks[key] = { actual: 0, goal }
+    const dayGoal = (allGoals && allGoals.length > 0) ? getGoalForDate(l.logged_on.slice(0, 10), allGoals) : goal
+    if (!weeks[key]) weeks[key] = { actual: 0, goalSum: 0, dayCount: 0 }
     weeks[key].actual += l.minutes
+    weeks[key].goalSum += dayGoal
+    weeks[key].dayCount++
   })
-  return Object.entries(weeks).map(([week, data]) => ({ week, actual: data.actual, goal: data.goal }))
+  return Object.entries(weeks).map(([week, data]) => ({ week, actual: data.actual, goal: data.dayCount > 0 ? Math.round(data.goalSum / data.dayCount) : goal }))
 }
 
 
@@ -260,12 +305,13 @@ export type EarningsBreakdown = {
   monthEarnings: number
   yearEarnings: number
   totalEarnings: number
-  qualifiedDays: { date: string; minutes: number; note: string | null; earnings: number; qualified: boolean }[]
+  qualifiedDays: { date: string; minutes: number; note: string | null; earnings: number; qualified: boolean; goalForDate: number }[]
 }
 
 
 // COMPUTES EARNINGS BREAKDOWN — PAST DAYS ALWAYS COUNT (TIME EXPIRED), TODAY ONLY COUNTS IF GOAL IS MET
-export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: number): EarningsBreakdown {
+// Now uses goal history so each day is compared against the goal that was active on that date
+export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: number, allGoals?: Goal[]): EarningsBreakdown {
   const earn = (minutes: number) => Number((minutes * ratePerMinute).toFixed(2))
   const today = localToday()
 
@@ -296,12 +342,13 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   const qualifiedDates = new Set<string>()
   for (const [date, d] of byDate) {
     if (d.minutes <= 0) continue
+    const dayGoal = (allGoals && allGoals.length > 0) ? getGoalForDate(date, allGoals) : goal
     if (date < today) {
       // PAST DAY — TIME EXPIRED, ALL MINUTES COUNT AS EARNINGS
       qualifiedDates.add(date)
     } else if (date === today) {
       // TODAY — ONLY COUNT IF GOAL IS MET (OR NO GOAL IS SET)
-      if (goal <= 0 || d.minutes >= goal) {
+      if (dayGoal <= 0 || d.minutes >= dayGoal) {
         qualifiedDates.add(date)
       }
     }
@@ -317,15 +364,20 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   const totalEarnings = qualified.reduce((s, l) => s + earn(l.minutes), 0)
 
   // QUALIFIED FLAG SHOWS WHETHER THE DAY MET THE GOAL (CHECK ICON) OR JUST EXPIRED (CLOCK ICON)
+  // goalForDate is included so the UI can display the correct goal per day
   const qualifiedDays = [...byDate.entries()]
     .slice(0, 14)
-    .map(([date, d]) => ({
-      date,
-      minutes: d.minutes,
-      note: d.note,
-      earnings: qualifiedDates.has(date) ? earn(d.minutes) : 0,
-      qualified: goal > 0 ? d.minutes >= goal : d.minutes > 0
-    }))
+    .map(([date, d]) => {
+      const dayGoal = (allGoals && allGoals.length > 0) ? getGoalForDate(date, allGoals) : goal
+      return {
+        date,
+        minutes: d.minutes,
+        note: d.note,
+        earnings: qualifiedDates.has(date) ? earn(d.minutes) : 0,
+        qualified: dayGoal > 0 ? d.minutes >= dayGoal : d.minutes > 0,
+        goalForDate: dayGoal
+      }
+    })
 
   return { todayEarnings, weekEarnings, monthEarnings, yearEarnings, totalEarnings, qualifiedDays }
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle, localToday, localMonth, computeEarnings } from '@/lib/finance'
-import type { DailyLog } from '@/lib/finance'
+import type { DailyLog, Goal } from '@/lib/finance'
 
 
 // PROVIDES FINANCE TRACKING STATE INCLUDING MINUTES, GOALS, EARNINGS, CHART DATA, AND ALL CRUD OPERATIONS FOR DAILY LOGS
@@ -11,6 +11,7 @@ import type { DailyLog } from '@/lib/finance'
 export function useFinance() {
   const [logs, setLogs] = useState<DailyLog[]>([])
   const [goal, setGoal] = useState(goalMinutes)
+  const [allGoals, setAllGoals] = useState<Goal[]>([])
   const [workHours, setWorkHours] = useState(defaultWorkHours)
   const [ratePerMinute, setRatePerMinute] = useState(0.13)
   const [period, setPeriod] = useState<'day' | 'month' | 'year'>('month')
@@ -38,18 +39,21 @@ export function useFinance() {
       const calculatedTotal = todaysLogs.reduce((sum, l) => sum + l.minutes, 0)
       setCurrentMinutes(calculatedTotal)
 
-      const { data: goalData, error: goalError } = await supabase
+      const { data: allGoalsData, error: goalsError } = await supabase
         .from('goals')
-        .select('id, daily_minutes, work_hours, rate_per_minute')
+        .select('*')
         .eq('user_id', session.user.id)
-        .eq('is_active', true)
-        .maybeSingle()
+        .order('starts_on', { ascending: true })
 
-      if (goalError) throw goalError
+      if (goalsError) throw goalsError
+      setAllGoals(allGoalsData ?? [])
+
+      // Extract active goal for current goal display
+      const goalData = allGoalsData?.find((g: Goal) => g.is_active) ?? null
       if (goalData) {
         setGoal(goalData.daily_minutes)
         if (goalData.work_hours) setWorkHours(goalData.work_hours)
-        if (goalData.rate_per_minute != null) setRatePerMinute(goalData.rate_per_minute)
+        if ((goalData as any).rate_per_minute != null) setRatePerMinute((goalData as any).rate_per_minute)
       }
     } catch {
     } finally {
@@ -92,12 +96,12 @@ export function useFinance() {
     const currentMonth = localMonth()
     return logs.filter((l) => l.logged_on.startsWith(currentMonth))
   }, [logs])
-  const { monthTotal, monthAverage, goalHitRate, goalProgress, completedDays } = useMemo(() => computeMonthStats(monthLogs, goal), [monthLogs, goal])
+  const { monthTotal, monthAverage, goalHitRate, goalProgress, completedDays } = useMemo(() => computeMonthStats(monthLogs, goal, allGoals), [monthLogs, goal, allGoals])
 
-  const chartData = useMemo(() => buildChartData(logs, goal), [logs, goal])
-  const calendarDays = useMemo(() => buildCalendarData(logs, goal), [logs, goal])
+  const chartData = useMemo(() => buildChartData(logs, goal, allGoals), [logs, goal, allGoals])
+  const calendarDays = useMemo(() => buildCalendarData(logs, goal, undefined, undefined, allGoals), [logs, goal, allGoals])
   const recentEntries = useMemo(() => buildRecentEntries(logs), [logs])
-  const weeklyData = useMemo(() => buildWeeklyData(logs, goal), [logs, goal])
+  const weeklyData = useMemo(() => buildWeeklyData(logs, goal, allGoals), [logs, goal, allGoals])
 
   const prevMonthTotal = useMemo(() => {
     const now = new Date()
@@ -119,8 +123,8 @@ export function useFinance() {
   const progress = useMemo(() => getProgress(currentMinutes, goal), [currentMinutes, goal])
 
   const earningsBreakdown = useMemo(
-    () => computeEarnings(logs, goal, ratePerMinute),
-    [logs, goal, ratePerMinute]
+    () => computeEarnings(logs, goal, ratePerMinute, allGoals),
+    [logs, goal, ratePerMinute, allGoals]
   )
   const todayEarnings = earningsBreakdown.todayEarnings
   const monthEarnings = earningsBreakdown.monthEarnings
@@ -156,7 +160,7 @@ export function useFinance() {
   // DEPRECATED: DUMMY FUNCTION FOR MANUALLY TRIGGERING A SAVE OPERATION
   const saveMinutes = useCallback(async () => {}, []) // Deprecated
 
-  // UPDATES OR CREATES THE USER'S DAILY GOAL, WORK HOURS, AND RATE PER MINUTE IN THE DATABASE
+  // UPDATES THE USER'S DAILY GOAL — DEACTIVATES OLD GOAL AND CREATES A NEW ROW TO PRESERVE HISTORY
   const saveGoal = useCallback(async (value: number, hours?: number, rate?: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -166,6 +170,7 @@ export function useFinance() {
       const hoursToSave = hours ?? workHours
       const rateToSave = rate ?? ratePerMinute
 
+      // Deactivate existing active goal (preserve history)
       const { data: existingGoal } = await supabase
         .from('goals')
         .select('id')
@@ -174,25 +179,28 @@ export function useFinance() {
         .single()
 
       if (existingGoal) {
-        const { error } = await supabase
+        const { error: deactivateError } = await supabase
           .from('goals')
-          .update({ daily_minutes: goalToSave, work_hours: hoursToSave, rate_per_minute: rateToSave, updated_at: new Date().toISOString() })
+          .update({ is_active: false, updated_at: new Date().toISOString() })
           .eq('id', existingGoal.id)
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('goals')
-          .insert([{ user_id: session.user.id, daily_minutes: goalToSave, work_hours: hoursToSave, rate_per_minute: rateToSave, starts_on: localToday(), is_active: true }])
-        if (error) throw error
+        if (deactivateError) throw deactivateError
       }
+
+      // Insert new goal with today's date to create history trail
+      const { error: insertError } = await supabase
+        .from('goals')
+        .insert([{ user_id: session.user.id, daily_minutes: goalToSave, work_hours: hoursToSave, rate_per_minute: rateToSave, starts_on: localToday(), is_active: true }])
+      if (insertError) throw insertError
 
       setGoal(goalToSave)
       setWorkHours(hoursToSave)
       setRatePerMinute(rateToSave)
+      // Refresh all goals to update history
+      await fetchData()
     } catch (e: any) {
       alert('Save goal error: ' + (e?.message || String(e)))
     }
-  }, [workHours, ratePerMinute])
+  }, [workHours, ratePerMinute, fetchData])
 
   // DELETES A SPECIFIC DAILY LOG ENTRY FROM THE DATABASE BY ITS ID
   const deleteEntry = useCallback(async (id: string) => {
@@ -236,19 +244,19 @@ export function useFinance() {
   }, [])
 
   const periodData = useMemo(() => {
-    if (period === 'day') return buildWeeklyData(logs, goal)
+    if (period === 'day') return buildWeeklyData(logs, goal, allGoals)
     if (period === 'year') {
       const yearLogs = logs.filter((l) => new Date(l.logged_on).getFullYear() === new Date().getFullYear())
-      return buildWeeklyData(yearLogs, goal)
+      return buildWeeklyData(yearLogs, goal, allGoals)
     }
     return weeklyData
-  }, [period, logs, goal, weeklyData])
+  }, [period, logs, goal, allGoals, weeklyData])
 
   const greeting = useMemo(() => getGreeting(), [])
   const monthTitle = useMemo(() => getMonthTitle(), [])
 
   return {
-    currentMinutes, minutes: currentMinutes, goal, workHours, ratePerMinute, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
+    currentMinutes, minutes: currentMinutes, goal, allGoals, workHours, ratePerMinute, period, setPeriod, progress, addMinutes, setMinutes, saveMinutes, saveGoal, isSaving, isLoading,
     monthTotal, monthAverage, goalHitRate, goalProgress, completedDays, summary, weeklyData: periodData, chartData, calendarDays, dailyData: chartData,
     recentEntries, summaryMessage, weekDelta, greeting, monthTitle, deleteEntry, addEntry, updateEntry, logs,
     todayEarnings, monthEarnings, todayTotal,
