@@ -8,10 +8,10 @@ import { StatCard } from './stat-card'
 import { Glass, Eyebrow } from './shared'
 
 export function Earnings() {
-  const { logs, goal, ratePerMinute } = useFinance()
+  const { logs, goal, ratePerMinute, allGoals } = useFinance()
   const { todayEarnings, weekEarnings, monthEarnings, yearEarnings, totalEarnings, qualifiedDays } = useMemo(
-    () => computeEarnings(logs, goal, ratePerMinute),
-    [logs, goal, ratePerMinute]
+    () => computeEarnings(logs, goal, ratePerMinute, allGoals),
+    [logs, goal, ratePerMinute, allGoals]
   )
   const qualifiedCount = qualifiedDays.filter((d) => d.qualified).length
 
