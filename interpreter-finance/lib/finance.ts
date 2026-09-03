@@ -8,6 +8,7 @@ export type DailyLog = {
   user_id: string
   logged_on: string
   minutes: number
+  earnings?: number
   note: string | null
   is_active: boolean
   created_at: string
@@ -19,6 +20,7 @@ export type Goal = {
   user_id: string
   daily_minutes: number
   work_hours: number
+  rate_per_minute?: number
   starts_on: string
   is_active: boolean
   created_at: string
@@ -49,6 +51,18 @@ export function getGoalForDate(date: string, goals: Goal[]): number {
   for (const g of goals) {
     if (g.starts_on <= date) {
       result = g.daily_minutes
+    } else {
+      break
+    }
+  }
+  return result
+}
+
+export function getRateForDate(date: string, goals: Goal[], defaultRate: number = 0.13): number {
+  let result = defaultRate
+  for (const g of goals) {
+    if (g.starts_on <= date) {
+      if (g.rate_per_minute != null) result = g.rate_per_minute
     } else {
       break
     }
@@ -366,16 +380,18 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   const weekStart = dateKey(weekAgo)
 
   // GROUP LOGS BY DATE TO AGGREGATE MINUTES PER DAY
-  const byDate = new Map<string, { minutes: number; note: string | null; logsList: DailyLog[] }>()
+  const byDate = new Map<string, { minutes: number; note: string | null; logsList: DailyLog[]; earnings: number }>()
   for (const l of [...logs].sort((a, b) => b.logged_on.localeCompare(a.logged_on))) {
     const dKey = l.logged_on.slice(0, 10)
+    const logEarnings = l.earnings != null ? l.earnings : earn(l.minutes)
     const existing = byDate.get(dKey)
     if (existing) {
       existing.minutes += l.minutes
+      existing.earnings += logEarnings
       if (!existing.note && l.note) existing.note = l.note
       existing.logsList.push(l)
     } else {
-      byDate.set(dKey, { minutes: l.minutes, note: l.note, logsList: [l] })
+      byDate.set(dKey, { minutes: l.minutes, note: l.note, logsList: [l], earnings: logEarnings })
     }
   }
 
@@ -400,11 +416,11 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
   // FILTER LOGS TO ONLY QUALIFIED DATES
   const qualified = logs.filter((l) => qualifiedDates.has(l.logged_on.slice(0, 10)))
 
-  const todayEarnings = qualified.filter((l) => l.logged_on.startsWith(today)).reduce((s, l) => s + earn(l.minutes), 0)
-  const weekEarnings = qualified.filter((l) => l.logged_on.slice(0, 10) >= weekStart && l.logged_on.slice(0, 10) <= today).reduce((s, l) => s + earn(l.minutes), 0)
-  const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + earn(l.minutes), 0)
-  const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + earn(l.minutes), 0)
-  const totalEarnings = qualified.reduce((s, l) => s + earn(l.minutes), 0)
+  const todayEarnings = qualified.filter((l) => l.logged_on.startsWith(today)).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
+  const weekEarnings = qualified.filter((l) => l.logged_on.slice(0, 10) >= weekStart && l.logged_on.slice(0, 10) <= today).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
+  const monthEarnings = qualified.filter((l) => l.logged_on.startsWith(month)).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
+  const yearEarnings = qualified.filter((l) => l.logged_on.startsWith(year)).reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
+  const totalEarnings = qualified.reduce((s, l) => s + (l.earnings != null ? l.earnings : earn(l.minutes)), 0)
 
   // QUALIFIED FLAG SHOWS WHETHER THE DAY MET THE GOAL (CHECK ICON) OR JUST EXPIRED (CLOCK ICON)
   // goalForDate is included so the UI can display the correct goal per day
@@ -416,7 +432,7 @@ export function computeEarnings(logs: DailyLog[], goal: number, ratePerMinute: n
         date,
         minutes: d.minutes,
         note: d.note,
-        earnings: qualifiedDates.has(date) ? earn(d.minutes) : 0,
+        earnings: qualifiedDates.has(date) ? d.earnings : 0,
         qualified: dayGoal > 0 ? d.minutes >= dayGoal : d.minutes > 0,
         goalForDate: dayGoal
       }

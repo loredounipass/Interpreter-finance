@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle, localToday, localMonth, computeEarnings } from '@/lib/finance'
+import { goalMinutes, defaultWorkHours, formatMinutes, getProgress, sumMinutes, getSummaryMessage, computeMonthStats, buildChartData, buildCalendarData, buildRecentEntries, buildWeeklyData, getWeekDelta, getGreeting, getMonthTitle, localToday, localMonth, computeEarnings, getRateForDate } from '@/lib/finance'
 import type { DailyLog, Goal } from '@/lib/finance'
 
 
@@ -141,7 +141,7 @@ export function useFinance() {
 
       const { data, error } = await supabase
         .from('daily_logs')
-        .insert([{ user_id: session.user.id, logged_on: today, minutes: mins, note: null, is_active: false }])
+        .insert([{ user_id: session.user.id, logged_on: today, minutes: mins, earnings: Number((mins * ratePerMinute).toFixed(2)), note: null, is_active: false }])
         .select()
         .single()
       
@@ -153,7 +153,7 @@ export function useFinance() {
     } finally {
       setIsSaving(false)
     }
-  }, [today])
+  }, [today, ratePerMinute])
 
   // DEPRECATED: DUMMY FUNCTION FOR SETTING EXACT MINUTES
   const setMinutes = useCallback((value: number) => {}, []) // Deprecated
@@ -217,21 +217,24 @@ export function useFinance() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) return
-      const { data, error } = await supabase.from('daily_logs').insert([{ user_id: session.user.id, logged_on: today, minutes: mins, note: note ?? null, is_active: false }]).select().single()
+      const { data, error } = await supabase.from('daily_logs').insert([{ user_id: session.user.id, logged_on: today, minutes: mins, earnings: Number((mins * ratePerMinute).toFixed(2)), note: note ?? null, is_active: false }]).select().single()
       if (error) throw error
       setLogs((prev) => [data, ...prev])
       return data
     } catch {
       return null
     }
-  }, [today])
+  }, [today, ratePerMinute])
 
   // UPDATES AN EXISTING DAILY LOG ENTRY'S MINUTES AND NOTE IN THE DATABASE
   const updateEntry = useCallback(async (id: string, minutes: number, note?: string | null) => {
     try {
+      const existingLog = logs.find((l) => l.id === id)
+      const logDate = existingLog ? existingLog.logged_on.slice(0, 10) : today
+      const dateRate = getRateForDate(logDate, allGoals, ratePerMinute)
       const { data, error } = await supabase
         .from('daily_logs')
-        .update({ minutes: Number(minutes.toFixed(2)), note: note ?? null, updated_at: new Date().toISOString() })
+        .update({ minutes: Number(minutes.toFixed(2)), earnings: Number((minutes * dateRate).toFixed(2)), note: note ?? null, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single()
@@ -241,7 +244,7 @@ export function useFinance() {
     } catch {
       return null
     }
-  }, [])
+  }, [logs, today, allGoals, ratePerMinute])
 
   const periodData = useMemo(() => {
     if (period === 'day') return buildWeeklyData(logs, goal, allGoals)
