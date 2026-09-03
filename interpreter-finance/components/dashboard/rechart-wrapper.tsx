@@ -27,7 +27,7 @@ export default function RechartWrapper({ data }: { data: ChartPoint[] }) {
           <CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="4 6" />
           <XAxis dataKey={(d) => d.label || d.day} tickLine={false} axisLine={false} tick={false} />
           <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} domain={[0, yMax]} />
-          <Tooltip contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--foreground)' }} formatter={(value) => [`${value} min`, 'Interpreted']} />
+          <Tooltip contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--foreground)' }} formatter={(value, name) => [`${value} min`, name === 'goal' ? 'Goal' : 'Interpreted']} />
           <Area type="monotone" dataKey="goal" stroke="var(--chart-2)" strokeWidth={1.5} strokeDasharray="5 5" fill="none" />
           <Area type="monotone" dataKey="minutes" stroke="var(--chart-1)" strokeWidth={2.5} fill="url(#aquaFill)" dot={false} activeDot={{ r: 5, fill: 'var(--chart-1)', stroke: 'var(--background)', strokeWidth: 3 }} />
         </AreaChart>
