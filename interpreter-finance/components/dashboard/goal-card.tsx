@@ -56,12 +56,6 @@ export function GoalCard() {
         <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        {[15, 30, 45].map((value) => (
-          <button key={value} onClick={() => addMinutes(value)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-muted-foreground hover:border-primary/30 hover:text-primary">
-            +{value}m
-          </button>
-        ))}
-        
         <form onSubmit={handleAdd} className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5 focus-within:border-primary/50">
           <span className="text-xs text-muted-foreground">+</span>
           <input 
@@ -77,7 +71,7 @@ export function GoalCard() {
           <button type="submit" disabled={!draftMins} className="px-2 text-xs font-semibold text-primary disabled:opacity-50">Add</button>
         </form>
 
-        <button onClick={handleSave} disabled={isSaving} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
+        <button onClick={handleSave} disabled={isSaving || (goal > 0 && currentMinutes < goal) || currentMinutes === 0} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
           {isSaving ? 'Saving...' : 'Save log'}
         </button>
       </div>
