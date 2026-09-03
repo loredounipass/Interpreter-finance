@@ -8,8 +8,8 @@ import { StatCard } from './stat-card'
 import { Glass, Eyebrow } from './shared'
 import { DailyLogsDialog } from './daily-logs-dialog'
 
-const shortDateTimeFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+const shortDateTimeFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' })
 
 function fmtDate(iso: string) {
   const d = new Date(iso)
