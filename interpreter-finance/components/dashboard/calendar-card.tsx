@@ -9,7 +9,7 @@ import { Glass, Eyebrow } from './shared'
 const monthYearFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 
 export function CalendarCard() {
-  const { logs, goal } = useFinance()
+  const { logs, goal, allGoals } = useFinance()
   const now = new Date()
   
   const [viewYear, setViewYear] = useState(now.getFullYear())
@@ -38,8 +38,8 @@ export function CalendarCard() {
   }, [viewYear, viewMonth])
 
   const calendarDays = useMemo(() => {
-    return buildCalendarData(logs, goal, viewYear, viewMonth)
-  }, [logs, goal, viewYear, viewMonth])
+    return buildCalendarData(logs, goal, viewYear, viewMonth, allGoals)
+  }, [logs, goal, allGoals, viewYear, viewMonth])
 
   const firstWeekday = new Date(viewYear, viewMonth, 1).getDay()
   

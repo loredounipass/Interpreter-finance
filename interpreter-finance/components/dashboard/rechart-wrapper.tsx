@@ -25,7 +25,7 @@ export default function RechartWrapper({ data }: { data: ChartPoint[] }) {
             </linearGradient>
           </defs>
           <CartesianGrid stroke="var(--border)" vertical={false} strokeDasharray="4 6" />
-          <XAxis dataKey="day" tickLine={false} axisLine={false} tick={false} />
+          <XAxis dataKey={(d) => d.label || d.day} tickLine={false} axisLine={false} tick={false} />
           <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }} domain={[0, yMax]} />
           <Tooltip contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 14, color: 'var(--foreground)' }} formatter={(value) => [`${value} min`, 'Interpreted']} />
           <Area type="monotone" dataKey="goal" stroke="var(--chart-2)" strokeWidth={1.5} strokeDasharray="5 5" fill="none" />

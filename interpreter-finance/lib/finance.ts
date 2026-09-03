@@ -36,9 +36,10 @@ export type Profile = {
 }
 
 export type WeekData = { week: string; actual: number; goal: number }
-export type ChartPoint = { day: number; minutes: number; goal: number }
+export type ChartPoint = { day: number; minutes: number; goal: number; label?: string }
 export type CalendarDay = { day: number; minutes: number; goalMet: boolean; hasEarnings: boolean }
 export type RecentEntry = { dateKey: string; date: string; minutes: number; note: string }
+export type ChartPage = { points: ChartPoint[]; page: number; totalPages: number; dateRange: string }
 
 
 // RESOLVES THE GOAL THAT WAS ACTIVE ON A GIVEN DATE BY WALKING THE GOAL TIMELINE
@@ -209,7 +210,49 @@ export function buildChartData(logs: DailyLog[], goal: number, allGoals?: Goal[]
 }
 
 
-// BUILDS CALENDAR DATA AGGREGATING MINUTES PER DAY FOR ANY GIVEN MONTH
+// BUILDS PAGINATED CHART DATA — ALLOWS NAVIGATING FORWARD AND BACKWARD THROUGH TIME
+// page=0 is the most recent data, page=1 is the previous window, etc.
+const chartDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+export function buildPaginatedChartData(logs: DailyLog[], goal: number, allGoals?: Goal[], page: number = 0, pageSize: number = 14): ChartPage {
+  const byDate = new Map<string, number>()
+  for (const l of [...logs].sort((a, b) => a.logged_on.localeCompare(b.logged_on))) {
+    const dKey = l.logged_on.slice(0, 10)
+    byDate.set(dKey, (byDate.get(dKey) || 0) + l.minutes)
+  }
+
+  const allEntries = Array.from(byDate.entries())
+  const totalPages = Math.max(1, Math.ceil(allEntries.length / pageSize))
+  const safePage = Math.max(0, Math.min(page, totalPages - 1))
+
+  // page 0 = most recent, page 1 = previous window, etc.
+  const endIndex = allEntries.length - (safePage * pageSize)
+  const startIndex = Math.max(0, endIndex - pageSize)
+  const pageEntries = allEntries.slice(startIndex, endIndex)
+
+  const points: ChartPoint[] = pageEntries.map(([dKey, minutes]) => {
+    const d = parseLocalDate(dKey)
+    return {
+      day: d.getDate(),
+      minutes,
+      goal: (allGoals && allGoals.length > 0) ? getGoalForDate(dKey, allGoals) : goal,
+      label: chartDateFormatter.format(d)
+    }
+  })
+
+  if (points.length === 0) {
+    points.push({ day: new Date().getDate(), minutes: 0, goal: goal, label: chartDateFormatter.format(new Date()) })
+  }
+
+  // Build date range string
+  let dateRange = ''
+  if (pageEntries.length > 0) {
+    const firstDate = parseLocalDate(pageEntries[0][0])
+    const lastDate = parseLocalDate(pageEntries[pageEntries.length - 1][0])
+    dateRange = `${chartDateFormatter.format(firstDate)} – ${chartDateFormatter.format(lastDate)}`
+  }
+
+  return { points, page: safePage, totalPages, dateRange }
+}
 // Includes goal status: goalMet (minutes >= goal) and hasEarnings (past day with logged minutes)
 // Now uses goal history to check goalMet against the goal active on each specific day
 export function buildCalendarData(logs: DailyLog[], goal: number = 0, year?: number, month?: number, allGoals?: Goal[]): CalendarDay[] {
