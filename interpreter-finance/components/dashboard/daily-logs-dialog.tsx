@@ -42,8 +42,8 @@ export function DailyLogsDialog({ dateKey, onClose }: { dateKey: string; onClose
   const entryData = recentEntries.find((e) => e.dateKey === dateKey)
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-opacity">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/95 p-6 shadow-2xl backdrop-blur-md relative max-h-[500px] sm:max-h-[600px] flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 sm:p-6 backdrop-blur-sm transition-opacity">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/95 p-6 shadow-2xl backdrop-blur-md relative max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Entries for {entryData?.date || dateKey}</h3>
           <button onClick={onClose} className="rounded-lg p-1 hover:bg-white/10 transition-colors">
