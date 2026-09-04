@@ -78,8 +78,8 @@ export function Earnings() {
           </div>
           <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
             <p className="text-xs text-muted-foreground">Potential monthly total</p>
-            <p className="mt-1 font-mono text-2xl">${Number((goal * ratePerMinute * 22).toFixed(2))}/month</p>
-            <p className="mt-1 text-[10px] text-muted-foreground">at ~22 qualified days</p>
+            <p className="mt-1 font-mono text-2xl">${Number((goal * ratePerMinute * 20).toFixed(2))}/month</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">at ~20 qualified days</p>
           </div>
         </Glass>
       </div>
