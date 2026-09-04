@@ -2,7 +2,8 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 export interface DownloadData {
-  period: string
+  fromDate?: string | null
+  toDate?: string | null
   totalMinutes: number
   totalEarnings: number
   entries: { date: string; minutes: number; note: string | null }[]
@@ -31,7 +32,8 @@ export function generateProfessionalPDF(data: DownloadData) {
   doc.setTextColor(33, 37, 41)
   const reportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   doc.text(`Generated: ${reportDate}`, pageWidth - 14, 22, { align: 'right' })
-  doc.text(`Period: ${data.period.charAt(0).toUpperCase() + data.period.slice(1)}`, pageWidth - 14, 28, { align: 'right' })
+  const periodText = (data.fromDate && data.toDate) ? `${data.fromDate} to ${data.toDate}` : (data.fromDate || data.toDate || 'All time')
+  doc.text(`Period: ${periodText}`, pageWidth - 14, 28, { align: 'right' })
 
   // Horizontal line
   doc.setDrawColor(222, 226, 230)
@@ -95,6 +97,6 @@ export function generateProfessionalPDF(data: DownloadData) {
   }
 
   // Save the PDF
-  const filename = `interpreter-finance-report-${data.period}-${new Date().toISOString().split('T')[0]}.pdf`
+  const filename = `interpreter-finance-report-${data.fromDate || 'start'}-${data.toDate || 'end'}-${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(filename)
 }
