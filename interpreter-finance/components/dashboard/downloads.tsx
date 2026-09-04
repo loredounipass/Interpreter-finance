@@ -5,18 +5,12 @@ import { Download, FileText, Loader2, CalendarRange, Clock3, CalendarDays, BarCh
 import { useDownloads } from '@/hooks/use-downloads'
 import { Glass, Eyebrow } from './shared'
 
-const PERIODS = [
-  { id: 'day', label: 'Today', icon: Clock3 },
-  { id: 'week', label: 'This Week', icon: CalendarDays },
-  { id: 'month', label: 'This Month', icon: CalendarRange },
-  { id: 'year', label: 'This Year', icon: BarChart3 },
-] as const
 
-type Period = typeof PERIODS[number]['id']
 
 export function Downloads() {
   const { isDownloading, error, downloadReport } = useDownloads()
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>('month')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   return (
     <div className="flex flex-col gap-4 max-w-3xl mx-auto w-full">
@@ -36,20 +30,30 @@ export function Downloads() {
           <div>
             <label className="text-sm font-medium mb-3 block">Select timeframe</label>
             <div className="grid sm:grid-cols-2 gap-3">
-              {PERIODS.map((period) => (
-                <button
-                  key={period.id}
-                  onClick={() => setSelectedPeriod(period.id)}
-                  className={`flex items-center gap-3 rounded-xl border p-4 transition-all ${
-                    selectedPeriod === period.id
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-white/5 hover:text-foreground'
-                  }`}
-                >
-                  <period.icon className="size-5" />
-                  <span className="font-medium">{period.label}</span>
-                </button>
-              ))}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-muted-foreground ml-1">From Date</label>
+                <div className="relative">
+                  <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input 
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.02] pl-10 pr-4 py-3 text-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none placeholder:text-muted-foreground hover:bg-white/5"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-muted-foreground ml-1">To Date</label>
+                <div className="relative">
+                  <CalendarRange className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input 
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.02] pl-10 pr-4 py-3 text-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none placeholder:text-muted-foreground hover:bg-white/5"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -60,8 +64,8 @@ export function Downloads() {
           )}
 
           <button
-            onClick={() => downloadReport(selectedPeriod)}
-            disabled={isDownloading}
+            onClick={() => downloadReport(fromDate, toDate)}
+            disabled={isDownloading || !fromDate || !toDate}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary p-4 font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
           >
             {isDownloading ? (

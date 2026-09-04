@@ -7,8 +7,8 @@ export function useDownloads() {
   const [isDownloading, setIsDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // CALLS THE API AND TRIGGERS PDF GENERATION BASED ON THE SPECIFIED PERIOD
-  const downloadReport = useCallback(async (period: 'day' | 'week' | 'month' | 'year' | 'all') => {
+  // CALLS THE API AND TRIGGERS PDF GENERATION BASED ON THE SPECIFIED DATE RANGE
+  const downloadReport = useCallback(async (fromDate: string, toDate: string) => {
     setIsDownloading(true)
     setError(null)
     
@@ -18,7 +18,11 @@ export function useDownloads() {
         throw new Error('You must be logged in to download reports.')
       }
 
-      const response = await fetch(`/api/downloads?period=${period}`, { headers })
+      const queryParams = new URLSearchParams()
+      if (fromDate) queryParams.set('from', fromDate)
+      if (toDate) queryParams.set('to', toDate)
+      
+      const response = await fetch(`/api/downloads?${queryParams.toString()}`, { headers })
       
       if (!response.ok) {
         throw new Error('Failed to fetch data for the report.')

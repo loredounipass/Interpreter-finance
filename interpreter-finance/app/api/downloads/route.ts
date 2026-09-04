@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const period = searchParams.get('period') || 'month'
+  const fromDate = searchParams.get('from')
+  const toDate = searchParams.get('to')
 
   try {
     // FETCH THE USER'S ACTIVE GOAL TO COMPUTE EARNINGS CORRECTLY
@@ -25,31 +26,18 @@ export async function GET(request: Request) {
     const dailyMinutes = goalData?.daily_minutes ?? 0
     const ratePerMinute = goalData?.rate_per_minute ?? 0.13
 
-    // BUILD THE START DATE FILTER BASED ON THE REQUESTED PERIOD
-    const now = new Date()
-    let startDateStr = ''
-
-    if (period === 'day') {
-      startDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    } else if (period === 'week') {
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 6)
-      startDateStr = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`
-    } else if (period === 'month') {
-      startDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-    } else if (period === 'year') {
-      startDateStr = `${now.getFullYear()}-01-01`
-    }
-
-    // FETCH THE LOGS FILTERED BY THE START DATE (OR ALL IF PERIOD IS NOT RECOGNIZED OR 'ALL')
+    // FETCH THE LOGS FILTERED BY THE DATE RANGE
     let query = supabase
       .from('daily_logs')
       .select('*')
       .eq('user_id', userId)
       .order('logged_on', { ascending: false })
 
-    if (startDateStr) {
-      query = query.gte('logged_on', startDateStr)
+    if (fromDate) {
+      query = query.gte('logged_on', fromDate)
+    }
+    if (toDate) {
+      query = query.lte('logged_on', toDate)
     }
 
     const { data: logsData, error: logsError } = await query
@@ -79,7 +67,8 @@ export async function GET(request: Request) {
       .sort((a, b) => b.date.localeCompare(a.date))
 
     return NextResponse.json({
-      period,
+      fromDate,
+      toDate,
       totalMinutes,
       totalEarnings: breakdown.totalEarnings,
       entries,
